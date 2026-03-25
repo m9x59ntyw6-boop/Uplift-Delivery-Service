@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { makeShadow } from "@/utils/shadow";
 import React from "react";
 import {
   Dimensions,
@@ -121,11 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
+    ...makeShadow(Colors.primary, 8, 0.4, 20, 12),
   },
   appName: {
     fontSize: 48,

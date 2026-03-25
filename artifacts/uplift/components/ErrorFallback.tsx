@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { reloadAppAsync } from "expo";
+import { makeShadow } from "@/utils/shadow";
 import React, { useState } from "react";
 import {
   Modal,

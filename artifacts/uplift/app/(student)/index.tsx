@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
 import { FoodSize, MenuItem, useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { makeShadow } from "@/utils/shadow";
 
 type Category = "all" | "food" | "snack" | "drink";
 
@@ -292,11 +293,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 10,
+    ...makeShadow(Colors.primary, 4, 0.4, 16, 10),
   },
   cartBarLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   cartCount: {

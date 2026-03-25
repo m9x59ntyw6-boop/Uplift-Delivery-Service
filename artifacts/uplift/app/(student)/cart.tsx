@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
 import { CartItem, useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { makeShadow } from "@/utils/shadow";
 
 function CartItemRow({ item }: { item: CartItem }) {
   const { addToCart, removeFromCart, menuItems } = useOrders();
@@ -350,11 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 16,
     height: 56,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    ...makeShadow(Colors.primary, 4, 0.4, 12, 8),
   },
   orderBtnDisabled: { backgroundColor: Colors.backgroundElevated },
   pressed: { opacity: 0.85 },
