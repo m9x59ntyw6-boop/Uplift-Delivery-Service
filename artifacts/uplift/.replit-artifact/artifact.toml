@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "Uplift - Lyft Deliveries"
+version = "1.0.0"
+id = "artifacts/uplift"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 22735
+
+[services.development]
+run = "pnpm --filter @workspace/uplift run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/uplift", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/uplift", "run", "serve" ]
+
+[services.env]
+PORT = "22735"
+BASE_PATH = "/"

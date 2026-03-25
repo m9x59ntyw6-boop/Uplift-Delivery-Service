@@ -94,3 +94,27 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+### `artifacts/uplift` (`@workspace/uplift`)
+
+Expo React Native mobile app — **Uplift by Lyft Deliveries** — for a Jamaican school environment.
+
+**Two user roles:**
+- **Student / Teacher / Staff** — browse Jamaican food menu, add to cart, select driver, place orders, live GPS tracking, chat support, streak discounts
+- **Delivery Personnel** — accept/update orders, GPS navigation, earnings dashboard, menu editor (prices/availability), profile/ratings
+
+**Key features:**
+- Food prices in JMD: Small J$750, Medium J$850, Large J$1,000
+- Streak discounts: 2+ days = 5% off, 3+ days = 10% off
+- 4 delivery persons: Tiamoy Johnson, Mickii French, Benjamin Haye, Gurvin Leachman
+- Demo logins: tiamoy@school.edu / mickii@school.edu / benjamin@school.edu / gurvin@school.edu (any password)
+- AsyncStorage for local persistence (no backend required)
+- react-native-maps@1.18.0 (pinned — do NOT add to app.json plugins)
+- Web stub for react-native-maps via metro.config.js resolver
+
+**Screens:**
+- `(auth)/` — welcome, login, register, terms
+- `(student)/` — index (menu), cart, orders (GPS modal, review modal), chat, chat-room, profile
+- `(delivery)/` — index (active orders), earnings, menu-editor, delivery-profile
+
+**Theme:** Dark navy `#0A0F1E`, primary blue `#1A73E8`, accent orange `#FF6B35`
