@@ -75,7 +75,7 @@ export default function LoginScreen() {
             <Ionicons name={isDelivery ? "bicycle" : "school"} size={28} color={isDelivery ? Colors.accent : Colors.primary} />
           </View>
           <Text style={styles.title}>{isDelivery ? "Delivery Login" : "Student / Staff Login"}</Text>
-          <Text style={styles.subtitle}>Welcome back to Uplift</Text>
+          <Text style={styles.subtitle}>Welcome back</Text>
         </View>
 
         <View style={styles.form}>
