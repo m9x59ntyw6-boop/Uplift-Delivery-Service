@@ -1,9 +1,8 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { SymbolView } from "expo-symbols";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Colors } from "@/constants/colors";
@@ -34,6 +33,19 @@ function NativeTabLayout() {
 function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+
+  const renderIcon = (sfName: string, featherName: string, color: string) => {
+    if (isIOS) {
+      try {
+        const { SymbolView } = require("expo-symbols");
+        return <SymbolView name={sfName} tintColor={color} size={22} />;
+      } catch {
+        return <Feather name={featherName as any} size={22} color={color} />;
+      }
+    }
+    return <Feather name={featherName as any} size={22} color={color} />;
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -60,32 +72,28 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: "Orders",
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="list.bullet" tintColor={color} size={22} /> : <Feather name="list" size={22} color={color} />,
+          tabBarIcon: ({ color }) => renderIcon("list.bullet", "list", color),
         }}
       />
       <Tabs.Screen
         name="earnings"
         options={{
           title: "Earnings",
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="banknote" tintColor={color} size={22} /> : <Feather name="dollar-sign" size={22} color={color} />,
+          tabBarIcon: ({ color }) => renderIcon("banknote", "dollar-sign", color),
         }}
       />
       <Tabs.Screen
         name="menu-editor"
         options={{
           title: "Menu",
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="square.and.pencil" tintColor={color} size={22} /> : <Feather name="edit-2" size={22} color={color} />,
+          tabBarIcon: ({ color }) => renderIcon("square.and.pencil", "edit-2", color),
         }}
       />
       <Tabs.Screen
         name="delivery-profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="person" tintColor={color} size={22} /> : <Feather name="user" size={22} color={color} />,
+          tabBarIcon: ({ color }) => renderIcon("person", "user", color),
         }}
       />
     </Tabs>
