@@ -47,6 +47,7 @@ export default function WelcomeScreen() {
           </View>
           <Text style={styles.appName}>uplift</Text>
           <Text style={styles.tagline}>by Lyft Deliveries</Text>
+          <Text style={styles.slogan}>Let us lift your experience</Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.featuresRow}>
@@ -131,12 +132,20 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
     color: Colors.textSecondary,
     letterSpacing: 1,
     textTransform: "uppercase",
     marginTop: 4,
+  },
+  slogan: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    color: Colors.primary,
+    fontStyle: "italic",
+    marginTop: 6,
+    letterSpacing: 0.2,
   },
   featuresRow: {
     flexDirection: "row",

@@ -76,6 +76,7 @@ export default function LoginScreen() {
           </View>
           <Text style={styles.title}>{isDelivery ? "Delivery Login" : "Student / Staff Login"}</Text>
           <Text style={styles.subtitle}>Welcome back</Text>
+          <Text style={styles.slogan}>Let us lift your experience</Text>
         </View>
 
         <View style={styles.form}>
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
   deliveryIcon: { backgroundColor: "rgba(255,107,53,0.15)" },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", color: Colors.text, marginBottom: 6 },
   subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
+  slogan: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.primary, fontStyle: "italic", marginTop: 4 },
   form: { gap: 16 },
   inputGroup: { gap: 8 },
   label: { fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.textSecondary },
