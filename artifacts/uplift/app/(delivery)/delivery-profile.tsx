@@ -25,7 +25,7 @@ export default function DeliveryProfileScreen() {
   const myDeliveries = orders.filter(o => o.deliveryPersonId === user?.id && o.status === "delivered");
   const totalEarned = myDeliveries.reduce((s, o) => s + o.total, 0);
   const activeOrders = orders.filter(o =>
-    o.deliveryPersonId === user?.id && ["accepted", "preparing", "on_the_way"].includes(o.status)
+    o.deliveryPersonId === user?.id && ["driver_assigned", "restaurant_preparing", "out_for_delivery"].includes(o.status)
   ).length;
 
   const handleLogout = async () => {

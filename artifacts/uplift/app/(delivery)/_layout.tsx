@@ -22,6 +22,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "square.and.pencil", selected: "square.and.pencil" }} />
         <Label>Menu</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="analytics">
+        <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
+        <Label>Analytics</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="delivery-profile">
         <Icon sf={{ default: "person", selected: "person.fill" }} />
         <Label>Profile</Label>
@@ -87,6 +91,13 @@ function ClassicTabLayout() {
         options={{
           title: "Menu",
           tabBarIcon: ({ color }) => renderIcon("square.and.pencil", "edit-2", color),
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: "Analytics",
+          tabBarIcon: ({ color }) => renderIcon("chart.bar", "bar-chart-2", color),
         }}
       />
       <Tabs.Screen
