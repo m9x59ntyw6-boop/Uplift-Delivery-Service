@@ -10,6 +10,9 @@ import { io, Socket } from "socket.io-client";
 
 let _socket: Socket | null = null;
 let _isConnected = false;
+let _lastUserId: string | null = null;
+let _lastRole: string | null = null;
+let _lastPushToken: string | null | undefined = null;
 
 function getServerUrl(): string {
   // Uses the same domain as the REST API
@@ -39,6 +42,10 @@ export function getSocket(): Socket {
     _socket.on("connect", () => {
       _isConnected = true;
       console.log("[Socket] Connected:", _socket?.id);
+      // Re-register user on every connect (covers background reconnects)
+      if (_lastUserId && _lastRole) {
+        _socket?.emit("register", { userId: _lastUserId, role: _lastRole, pushToken: _lastPushToken ?? undefined });
+      }
     });
 
     _socket.on("disconnect", (reason) => {
@@ -66,18 +73,17 @@ export function getSocket(): Socket {
  */
 export function connectSocket(userId: string, role: string, pushToken?: string | null) {
   try {
+    // Save user info so the connect handler can re-register on any reconnect
+    _lastUserId = userId;
+    _lastRole = role;
+    _lastPushToken = pushToken;
+
     const socket = getSocket();
     if (!socket.connected) {
       socket.connect();
-    }
-    // Register after connection (or immediately if already connected)
-    const doRegister = () => {
-      socket.emit("register", { userId, role, pushToken: pushToken ?? undefined });
-    };
-    if (socket.connected) {
-      doRegister();
     } else {
-      socket.once("connect", doRegister);
+      // Already connected — register immediately
+      socket.emit("register", { userId, role, pushToken: pushToken ?? undefined });
     }
   } catch (e) {
     console.warn("[Socket] Connect error:", e);
@@ -141,6 +147,9 @@ export function disconnectSocket() {
     _socket?.disconnect();
     _socket = null;
     _isConnected = false;
+    _lastUserId = null;
+    _lastRole = null;
+    _lastPushToken = null;
     console.log("[Socket] Disconnected and cleaned up");
   } catch {}
 }

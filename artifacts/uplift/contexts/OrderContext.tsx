@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { useAuth } from "./AuthContext";
 
 export type FoodSize = "small" | "medium" | "large";
@@ -193,6 +194,17 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>(DEFAULT_DELIVERY_PERSONS);
 
   useEffect(() => { loadData(); }, []);
+
+  // ── Reload orders/data when app returns to foreground ──────────────────────
+  useEffect(() => {
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === "active") {
+        loadData();
+      }
+    };
+    const sub = AppState.addEventListener("change", handleAppState);
+    return () => sub.remove();
+  }, []);
 
   const loadData = async () => {
     try {

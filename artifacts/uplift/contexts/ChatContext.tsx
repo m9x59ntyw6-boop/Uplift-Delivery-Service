@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { connectSocket, disconnectSocket, emitMessage, emitStopTyping, emitTyping, getSocket, isSocketConnected, joinRoom } from "@/utils/socket";
 import { getPushToken, registerForPushNotifications, showLocalNotification } from "@/utils/notifications";
 import { useAuth } from "./AuthContext";
@@ -62,6 +63,24 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       try { joinRoom(r.id); } catch {}
     });
   }, [user?.id, rooms.length]);
+
+  // ── Reconnect socket when app returns to foreground ──────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === "active") {
+        try {
+          const pushToken = getPushToken();
+          connectSocket(user.id, user.role, pushToken);
+          setIsOnline(isSocketConnected());
+        } catch (e) {
+          console.warn("[Chat] AppState reconnect error:", e);
+        }
+      }
+    };
+    const sub = AppState.addEventListener("change", handleAppState);
+    return () => sub.remove();
+  }, [user?.id]);
 
   // ── Connect socket when user logs in, disconnect on logout ───────────────
   useEffect(() => {
