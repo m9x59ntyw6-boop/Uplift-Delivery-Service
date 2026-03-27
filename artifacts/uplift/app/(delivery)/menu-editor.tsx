@@ -22,9 +22,9 @@ function EditableMenuItem({ item, onSave }: { item: MenuItem; onSave: (updated: 
   const [expanded, setExpanded] = useState(false);
   const [name, setName] = useState(item.name);
   const [desc, setDesc] = useState(item.description);
-  const [smallPrice, setSmallPrice] = useState(item.prices.small.toString());
-  const [medPrice, setMedPrice] = useState(item.prices.medium.toString());
-  const [largePrice, setLargePrice] = useState(item.prices.large.toString());
+  const [smallPrice, setSmallPrice] = useState((item.prices?.small ?? 750).toString());
+  const [medPrice, setMedPrice] = useState((item.prices?.medium ?? 850).toString());
+  const [largePrice, setLargePrice] = useState((item.prices?.large ?? 1000).toString());
   const [available, setAvailable] = useState(item.available);
   const [dirty, setDirty] = useState(false);
 
@@ -58,7 +58,7 @@ function EditableMenuItem({ item, onSave }: { item: MenuItem; onSave: (updated: 
         <View style={styles.menuItemInfo}>
           <Text style={styles.menuItemName}>{item.name}</Text>
           <Text style={styles.menuItemPrices}>
-            J${item.prices.small} / J${item.prices.medium} / J${item.prices.large}
+            J${item.prices?.small ?? 750} / J${item.prices?.medium ?? 850} / J${item.prices?.large ?? 1000}
           </Text>
         </View>
         <View style={styles.menuItemRight}>

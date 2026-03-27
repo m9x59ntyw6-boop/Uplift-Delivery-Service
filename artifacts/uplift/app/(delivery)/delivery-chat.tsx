@@ -19,7 +19,9 @@ import { useOrders } from "@/contexts/OrderContext";
 import { makeShadow } from "@/utils/shadow";
 
 function timeAgo(ts: string): string {
-  const diff = Date.now() - new Date(ts).getTime();
+  const t = new Date(ts).getTime();
+  if (!ts || isNaN(t)) return "just now";
+  const diff = Date.now() - t;
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;

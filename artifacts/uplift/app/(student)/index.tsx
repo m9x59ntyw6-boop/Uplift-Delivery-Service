@@ -68,7 +68,7 @@ function MenuCard({ item, index }: { item: MenuItem; index: number }) {
                 {SIZE_LABELS[s]}
               </Text>
               <Text style={[styles.sizeBtnPrice, selectedSize === s && styles.sizeBtnPriceActive]}>
-                J${item.prices[s].toLocaleString()}
+                J${(item.prices?.[s] ?? 0).toLocaleString()}
               </Text>
             </Pressable>
           ))}
