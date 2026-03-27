@@ -16,6 +16,8 @@ import { Colors } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrders } from "@/contexts/OrderContext";
 
+const DRIVER_EARNINGS_RATE = 0.15;
+
 export default function DeliveryProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
@@ -23,7 +25,7 @@ export default function DeliveryProfileScreen() {
 
   const dp = deliveryPersons.find(d => d.id === user?.id);
   const myDeliveries = orders.filter(o => o.deliveryPersonId === user?.id && o.status === "delivered");
-  const totalEarned = myDeliveries.reduce((s, o) => s + o.total, 0);
+  const totalEarned = myDeliveries.reduce((s, o) => s + Math.round(o.total * DRIVER_EARNINGS_RATE + (o.deliveryFee ?? 50)), 0);
   const activeOrders = orders.filter(o =>
     o.deliveryPersonId === user?.id && ["driver_assigned", "restaurant_preparing", "out_for_delivery"].includes(o.status)
   ).length;

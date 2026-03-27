@@ -60,7 +60,7 @@ function OrderCard({ order }: { order: Order }) {
       <View style={styles.cardHeader}>
         <View>
           <Text style={styles.orderId}>Order #{order.id.slice(-6).toUpperCase()}</Text>
-          <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString("en-JM", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</Text>
+          <Text style={styles.orderDate}>{(() => { try { return new Date(order.createdAt).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return new Date(order.createdAt).toLocaleString(); } })()}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: `${color}18`, borderColor: `${color}50` }]}>
           <Ionicons name={icon} size={13} color={color} />

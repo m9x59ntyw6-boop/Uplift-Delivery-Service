@@ -141,7 +141,7 @@ interface OrderContextValue {
   addToCart: (item: MenuItem, size: FoodSize) => void;
   removeFromCart: (menuItemId: string, size: FoodSize) => void;
   clearCart: () => void;
-  placeOrder: (locationId: string, paymentMethod: PaymentMethod) => Promise<Order | null>;
+  placeOrder: (locationId: string, paymentMethod: PaymentMethod, customLabel?: string) => Promise<Order | null>;
   acceptOrder: (orderId: string, deliveryPersonId: string, deliveryPersonName: string) => Promise<void>;
   declineOrder: (orderId: string, deliveryPersonId: string) => Promise<void>;
   advanceOrderStatus: (orderId: string) => Promise<void>;

@@ -14,13 +14,19 @@ import { Colors } from "@/constants/colors";
 import { useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
 
+const DRIVER_EARNINGS_RATE = 0.15;
+
+function calcEarnings(total: number, deliveryFee: number | undefined): number {
+  return Math.round(total * DRIVER_EARNINGS_RATE + (deliveryFee ?? 50));
+}
+
 export default function EarningsScreen() {
   const insets = useSafeAreaInsets();
   const { orders, deliveryPersons } = useOrders();
   const { user } = useAuth();
 
   const myDeliveries = orders.filter(o => o.deliveryPersonId === user?.id && o.status === "delivered");
-  const totalEarned = myDeliveries.reduce((s, o) => s + o.total, 0);
+  const totalEarned = myDeliveries.reduce((s, o) => s + calcEarnings(o.total, o.deliveryFee), 0);
   const dp = deliveryPersons.find(d => d.id === user?.id);
 
   const todayOrders = myDeliveries.filter(o => {
@@ -28,14 +34,14 @@ export default function EarningsScreen() {
     const orderDate = new Date(o.createdAt);
     return orderDate.toDateString() === today.toDateString();
   });
-  const todayEarnings = todayOrders.reduce((s, o) => s + o.total, 0);
+  const todayEarnings = todayOrders.reduce((s, o) => s + calcEarnings(o.total, o.deliveryFee), 0);
 
   const weekOrders = myDeliveries.filter(o => {
     const now = Date.now();
     const orderTime = new Date(o.createdAt).getTime();
     return now - orderTime < 7 * 24 * 60 * 60 * 1000;
   });
-  const weekEarnings = weekOrders.reduce((s, o) => s + o.total, 0);
+  const weekEarnings = weekOrders.reduce((s, o) => s + calcEarnings(o.total, o.deliveryFee), 0);
 
   return (
     <ScrollView
@@ -122,7 +128,7 @@ export default function EarningsScreen() {
                 <Text style={styles.historyCustomer}>{o.userName}</Text>
                 <Text style={styles.historyDate}>{new Date(o.createdAt).toLocaleDateString()}</Text>
               </View>
-              <Text style={styles.historyAmount}>+J${o.total.toLocaleString()}</Text>
+              <Text style={styles.historyAmount}>+J${calcEarnings(o.total, o.deliveryFee).toLocaleString()}</Text>
             </View>
           ))
         )}

@@ -65,7 +65,7 @@ export default function DeliveryChatScreen() {
       >
         <View style={[styles.avatarCircle, { backgroundColor: isSupport ? "rgba(168,85,247,0.15)" : "rgba(26,115,232,0.15)" }]}>
           <Text style={[styles.avatarText, { color: isSupport ? "#A855F7" : Colors.primary }]}>
-            {room.userName.charAt(0).toUpperCase()}
+            {(room.userName || "?").charAt(0).toUpperCase()}
           </Text>
           {hasUnread && (
             <View style={styles.unreadBadge}>
