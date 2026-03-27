@@ -59,6 +59,7 @@
     "expo-device": "^8.0.10",
     "expo-notifications": "^0.32.16",
     "react-native-maps": "1.20.1",
+    "react-native-qrcode-svg": "^6.3.21",
     "socket.io-client": "^4.8.3"
   }
 }
