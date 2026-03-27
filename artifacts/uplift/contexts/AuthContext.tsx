@@ -15,7 +15,6 @@ export interface User {
 }
 
 // ─── Delivery Personnel Security Codes ───────────────────────────────────────
-// Last 4 digits of each staff member's ID. Gurvin controls access expansion.
 export const DELIVERY_STAFF: {
   id: string;
   name: string;
@@ -30,8 +29,7 @@ export const DELIVERY_STAFF: {
   { id: "u4", name: "Gurvin Leachman",  email: "gurvin@school.edu",    code: "0874", initials: "GL", color: "#A855F7" },
 ];
 
-// Gurvin (u4) can toggle this to allow new staff to be added
-export const GURVIN_LOCK = true; // true = locked to 4 staff until Gurvin approves
+export const GURVIN_LOCK = true;
 
 interface AuthContextValue {
   user: User | null;
@@ -43,12 +41,15 @@ interface AuthContextValue {
   updateUser: (updates: Partial<User>) => void;
   agreeToTerms: () => void;
   updateStreak: () => void;
+  getSavedEmail: () => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const STORAGE_KEY = "@uplift_user_v2";
-const USERS_KEY   = "@uplift_users_v2";
+const STORAGE_KEY      = "@uplift_user_v2";
+const USERS_KEY        = "@uplift_users_v2";
+const CREDENTIALS_KEY  = "@uplift_credentials_v2";   // { email: password }
+const LAST_EMAIL_KEY   = "@uplift_last_email_v2";    // last successful login email
 
 const DEMO_USERS: User[] = DELIVERY_STAFF.map(s => ({
   id: s.id, name: s.name, email: s.email,
@@ -102,16 +103,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ── Credentials store (email → password) ──────────────────────────────────
+  const getCredentials = async (): Promise<Record<string, string>> => {
+    try {
+      const stored = await AsyncStorage.getItem(CREDENTIALS_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveCredential = async (email: string, password: string) => {
+    try {
+      const creds = await getCredentials();
+      creds[email.toLowerCase()] = password;
+      await AsyncStorage.setItem(CREDENTIALS_KEY, JSON.stringify(creds));
+    } catch (e) {
+      console.warn("[Auth] Failed to save credential:", e);
+    }
+  };
+
+  // ── Remember last used email ───────────────────────────────────────────────
+  const saveLastEmail = async (email: string) => {
+    try { await AsyncStorage.setItem(LAST_EMAIL_KEY, email.toLowerCase()); } catch {}
+  };
+
+  const getSavedEmail = async (): Promise<string> => {
+    try {
+      return (await AsyncStorage.getItem(LAST_EMAIL_KEY)) ?? "";
+    } catch {
+      return "";
+    }
+  };
+
   // ── Standard email/password login (students & staff) ──────────────────────
   const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
     try {
-      if (role === "delivery") return false; // delivery uses loginDelivery
+      if (role === "delivery") return false;
       const users = await getUsers();
       const found = users.find(u =>
         u.email.toLowerCase() === email.toLowerCase() && u.role === role
       );
-      if (found) { await saveUser(found); return true; }
-      return false;
+      if (!found) return false;
+
+      // Verify password — if credentials exist for this email, check them
+      const creds = await getCredentials();
+      const storedPw = creds[email.toLowerCase()];
+      if (storedPw && storedPw !== password) return false;
+
+      await saveUser(found);
+      await saveLastEmail(email);
+      return true;
     } catch (e) {
       console.warn("[Auth] Login error:", e);
       return false;
@@ -142,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (name: string, email: string, password: string, role: UserRole): Promise<boolean> => {
     try {
-      if (role === "delivery") return false; // delivery staff are pre-registered only
+      if (role === "delivery") return false;
       const users = await getUsers();
       if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) return false;
       const newUser: User = {
@@ -151,7 +193,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         streakDays: 0, lastOrderDate: null, agreedToTerms: false,
       };
       await saveUsers([...users, newUser]);
+      // Save the password so they can log back in later
+      await saveCredential(email, password);
       await saveUser(newUser);
+      await saveLastEmail(email);
       return true;
     } catch (e) {
       console.warn("[Auth] Register error:", e);
@@ -164,6 +209,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem(STORAGE_KEY);
     } catch {}
     setUser(null);
+    // Note: we do NOT remove LAST_EMAIL_KEY or CREDENTIALS_KEY —
+    // those stay so the login screen can pre-fill on next visit
   };
 
   const updateUser = async (updates: Partial<User>) => {
@@ -191,7 +238,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(() => ({
-    user, isLoading, login, loginDelivery, register, logout, updateUser, agreeToTerms, updateStreak,
+    user, isLoading, login, loginDelivery, register, logout,
+    updateUser, agreeToTerms, updateStreak, getSavedEmail,
   }), [user, isLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

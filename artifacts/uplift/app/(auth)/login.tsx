@@ -2,7 +2,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -20,7 +20,7 @@ import { useAuth, UserRole } from "@/contexts/AuthContext";
 export default function LoginScreen() {
   const { role: roleParam } = useLocalSearchParams<{ role?: UserRole }>();
   const role: UserRole = roleParam === "delivery" ? "delivery" : "student_staff";
-  const { login } = useAuth();
+  const { login, getSavedEmail } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
@@ -28,12 +28,19 @@ export default function LoginScreen() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailLoaded, setEmailLoaded] = useState(false);
 
-  const isDelivery = role === "delivery";
+  // Pre-fill the last used email so returning users don't have to retype it
+  useEffect(() => {
+    getSavedEmail().then(saved => {
+      if (saved) setEmail(saved);
+      setEmailLoaded(true);
+    });
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setError("Please fill in all fields");
+      setError("Please enter your email and password");
       return;
     }
     setLoading(true);
@@ -46,13 +53,9 @@ export default function LoginScreen() {
       else router.replace("/(student)");
     } else {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setError("Invalid credentials. Try demo: tiamoy@school.edu (delivery) or register");
+      setError("No account found with those details. Check your email and password, or register a new account.");
     }
   };
-
-  const demoHint = isDelivery
-    ? "Demo: tiamoy@school.edu / any password"
-    : "Register a new account to get started";
 
   return (
     <LinearGradient colors={["#0A0F1E", "#111827"]} style={{ flex: 1 }}>
@@ -71,10 +74,10 @@ export default function LoginScreen() {
         </Pressable>
 
         <View style={styles.header}>
-          <View style={[styles.roleIcon, isDelivery ? styles.deliveryIcon : styles.studentIcon]}>
-            <Ionicons name={isDelivery ? "bicycle" : "school"} size={28} color={isDelivery ? Colors.accent : Colors.primary} />
+          <View style={styles.roleIcon}>
+            <Ionicons name="school" size={28} color={Colors.primary} />
           </View>
-          <Text style={styles.title}>{isDelivery ? "Delivery Login" : "Student / Staff Login"}</Text>
+          <Text style={styles.title}>Student / Staff Login</Text>
           <Text style={styles.subtitle}>Welcome back</Text>
           <Text style={styles.slogan}>Let us lift your experience</Text>
         </View>
@@ -87,13 +90,18 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={v => { setEmail(v); setError(""); }}
                 placeholder="your@email.com"
                 placeholderTextColor={Colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              {!!email && (
+                <Pressable onPress={() => setEmail("")} style={styles.clearBtn}>
+                  <Feather name="x" size={14} color={Colors.textMuted} />
+                </Pressable>
+              )}
             </View>
           </View>
 
@@ -104,7 +112,7 @@ export default function LoginScreen() {
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={v => { setPassword(v); setError(""); }}
                 placeholder="••••••••"
                 placeholderTextColor={Colors.textMuted}
                 secureTextEntry={!showPw}
@@ -122,13 +130,8 @@ export default function LoginScreen() {
             </View>
           )}
 
-          <View style={styles.hintBox}>
-            <Feather name="info" size={13} color={Colors.primary} />
-            <Text style={styles.hintText}>{demoHint}</Text>
-          </View>
-
           <Pressable
-            style={({ pressed }) => [styles.loginBtn, isDelivery ? styles.deliveryLoginBtn : styles.studentLoginBtn, pressed && styles.pressed, loading && styles.disabled]}
+            style={({ pressed }) => [styles.loginBtn, pressed && styles.pressed, loading && styles.disabled]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -161,9 +164,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
+    backgroundColor: "rgba(26,115,232,0.15)",
   },
-  studentIcon: { backgroundColor: "rgba(26,115,232,0.15)" },
-  deliveryIcon: { backgroundColor: "rgba(255,107,53,0.15)" },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", color: Colors.text, marginBottom: 6 },
   subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
   slogan: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.primary, fontStyle: "italic", marginTop: 4 },
@@ -187,10 +189,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     color: Colors.text,
   },
+  clearBtn: { padding: 4, marginLeft: 4 },
   eyeBtn: { padding: 4 },
   errorBox: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
     backgroundColor: "rgba(239,68,68,0.1)",
     borderRadius: 10,
@@ -199,24 +202,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(239,68,68,0.3)",
   },
   errorText: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.danger, flex: 1 },
-  hintBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(26,115,232,0.08)",
-    borderRadius: 10,
-    padding: 12,
-  },
-  hintText: { fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.textSecondary, flex: 1 },
   loginBtn: {
     height: 54,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: Colors.primary,
     marginTop: 8,
   },
-  studentLoginBtn: { backgroundColor: Colors.primary },
-  deliveryLoginBtn: { backgroundColor: Colors.accent },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.6 },
   loginBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },

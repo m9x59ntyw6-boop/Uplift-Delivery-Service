@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
-import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function RegisterScreen() {
   const { register } = useAuth();
@@ -24,7 +24,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
-  const [role, setRole] = useState<UserRole>("student_staff");
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -43,13 +43,13 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     setError("");
-    const success = await register(name.trim(), email.trim(), password, role);
+    const success = await register(name.trim(), email.trim(), password, "student_staff");
     setLoading(false);
     if (success) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(auth)/terms");
     } else {
-      setError("Email already registered. Please login instead.");
+      setError("That email is already registered. Please sign in instead.");
     }
   };
 
@@ -71,53 +71,79 @@ export default function RegisterScreen() {
 
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join Uplift by Lyft Deliveries</Text>
-        </View>
-
-        <View style={styles.roleSelector}>
-          <Text style={styles.label}>I am a...</Text>
-          <View style={styles.roleRow}>
-            {([
-              { value: "student_staff" as UserRole, label: "Student / Staff", icon: "school" as const },
-              { value: "delivery" as UserRole, label: "Delivery Person", icon: "bicycle" as const },
-            ]).map(r => (
-              <Pressable
-                key={r.value}
-                style={[styles.roleOption, role === r.value && styles.roleOptionActive]}
-                onPress={() => setRole(r.value)}
-              >
-                <Ionicons name={r.icon} size={18} color={role === r.value ? Colors.primary : Colors.textMuted} />
-                <Text style={[styles.roleOptionText, role === r.value && styles.roleOptionTextActive]}>{r.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Text style={styles.subtitle}>Join Uplift — order food, track delivery, earn streak deals</Text>
         </View>
 
         <View style={styles.form}>
-          {[
-            { key: "name", label: "Full Name", value: name, setter: setName, icon: "user" as const, placeholder: "Your full name", kb: "default" as const },
-            { key: "email", label: "Email", value: email, setter: setEmail, icon: "mail" as const, placeholder: "your@email.com", kb: "email-address" as const },
-            { key: "password", label: "Password", value: password, setter: setPassword, icon: "lock" as const, placeholder: "••••••••", kb: "default" as const, secure: true },
-            { key: "confirm", label: "Confirm Password", value: confirmPw, setter: setConfirmPw, icon: "lock" as const, placeholder: "••••••••", kb: "default" as const, secure: true },
-          ].map(field => (
-            <View key={field.key} style={styles.inputGroup}>
-              <Text style={styles.label}>{field.label}</Text>
-              <View style={styles.inputWrap}>
-                <Feather name={field.icon} size={16} color={Colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  value={field.value}
-                  onChangeText={field.setter}
-                  placeholder={field.placeholder}
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType={field.kb}
-                  autoCapitalize={field.kb === "email-address" ? "none" : "words"}
-                  secureTextEntry={field.secure}
-                  autoCorrect={false}
-                />
-              </View>
+          {/* Name */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Full Name</Text>
+            <View style={styles.inputWrap}>
+              <Feather name="user" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={v => { setName(v); setError(""); }}
+                placeholder="Your full name"
+                placeholderTextColor={Colors.textMuted}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
             </View>
-          ))}
+          </View>
+
+          {/* Email */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <View style={styles.inputWrap}>
+              <Feather name="mail" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={v => { setEmail(v); setError(""); }}
+                placeholder="your@email.com"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
+
+          {/* Password */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.inputWrap}>
+              <Feather name="lock" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                value={password}
+                onChangeText={v => { setPassword(v); setError(""); }}
+                placeholder="At least 4 characters"
+                placeholderTextColor={Colors.textMuted}
+                secureTextEntry={!showPw}
+              />
+              <Pressable onPress={() => setShowPw(v => !v)} style={styles.eyeBtn}>
+                <Feather name={showPw ? "eye-off" : "eye"} size={16} color={Colors.textMuted} />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Confirm Password */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <View style={styles.inputWrap}>
+              <Feather name="lock" size={16} color={Colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={confirmPw}
+                onChangeText={v => { setConfirmPw(v); setError(""); }}
+                placeholder="••••••••"
+                placeholderTextColor={Colors.textMuted}
+                secureTextEntry={!showPw}
+              />
+            </View>
+          </View>
 
           {!!error && (
             <View style={styles.errorBox}>
@@ -136,6 +162,13 @@ export default function RegisterScreen() {
               : <Text style={styles.registerBtnText}>Create Account</Text>
             }
           </Pressable>
+
+          <View style={styles.noteBox}>
+            <Feather name="info" size={13} color={Colors.textMuted} />
+            <Text style={styles.noteText}>
+              Delivery staff use a separate PIN login — registration is for students and school staff only.
+            </Text>
+          </View>
         </View>
 
         <View style={styles.footer}>
@@ -154,24 +187,7 @@ const styles = StyleSheet.create({
   backBtn: { marginBottom: 24, width: 40 },
   header: { marginBottom: 28 },
   title: { fontSize: 26, fontFamily: "Inter_700Bold", color: Colors.text, marginBottom: 6 },
-  subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
-  roleSelector: { marginBottom: 20, gap: 10 },
-  roleRow: { flexDirection: "row", gap: 12 },
-  roleOption: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: Colors.backgroundCard,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  roleOptionActive: { borderColor: Colors.primary, backgroundColor: "rgba(26,115,232,0.1)" },
-  roleOptionText: { fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.textMuted },
-  roleOptionTextActive: { color: Colors.primary },
+  subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.textSecondary, lineHeight: 20 },
   form: { gap: 14 },
   inputGroup: { gap: 8 },
   label: { fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.textSecondary },
@@ -187,9 +203,10 @@ const styles = StyleSheet.create({
   },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.text },
+  eyeBtn: { padding: 4 },
   errorBox: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
     backgroundColor: "rgba(239,68,68,0.1)",
     borderRadius: 10,
@@ -204,11 +221,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.primary,
-    marginTop: 8,
+    marginTop: 4,
   },
   pressed: { opacity: 0.85 },
   disabled: { opacity: 0.6 },
   registerBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  noteBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  noteText: { fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.textMuted, flex: 1, lineHeight: 18 },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
