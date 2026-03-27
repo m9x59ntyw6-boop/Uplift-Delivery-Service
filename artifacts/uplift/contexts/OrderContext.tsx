@@ -262,17 +262,19 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getDeliveryFee = (locationId: string): number => {
+    if (locationId === "custom") return 400;
     return JAMAICA_LOCATIONS.find(l => l.id === locationId)?.deliveryFee ?? 200;
   };
 
-  const placeOrder = async (locationId: string, paymentMethod: PaymentMethod): Promise<Order | null> => {
+  const placeOrder = async (locationId: string, paymentMethod: PaymentMethod, customLabel?: string): Promise<Order | null> => {
     try {
     if (!user || cart.length === 0) return null;
-    const locationData = JAMAICA_LOCATIONS.find(l => l.id === locationId) ?? null;
+    const isCustom = locationId === "custom";
+    const locationData = isCustom ? null : (JAMAICA_LOCATIONS.find(l => l.id === locationId) ?? null);
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const discountRate = getStreakDiscount();
     const discount = Math.floor(subtotal * discountRate);
-    const deliveryFee = locationData?.deliveryFee ?? 200;
+    const deliveryFee = isCustom ? 400 : (locationData?.deliveryFee ?? 200);
     const total = subtotal - discount + deliveryFee;
 
     const order: Order = {
@@ -290,7 +292,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       statusHistory: makeStatusHistory("order_placed"),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      location: locationData?.label ?? locationId,
+      location: locationId === "custom" ? (customLabel ?? "Custom Address") : (locationData?.label ?? locationId),
       locationData,
       estimatedMinutes: 15 + Math.floor(Math.random() * 20),
       discountApplied: discount,

@@ -2,7 +2,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -52,18 +53,27 @@ export default function CartScreen() {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [customLocationText, setCustomLocationText] = useState("");
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("cash");
   const [loading, setLoading] = useState(false);
+  const customInputRef = useRef<TextInput>(null);
 
   const discount = getStreakDiscount();
   const discountAmount = Math.floor(cartTotal * discount);
   const deliveryFee = selectedLocation ? getDeliveryFee(selectedLocation) : 0;
   const total = cartTotal - discountAmount + deliveryFee;
   const locationData = JAMAICA_LOCATIONS.find(l => l.id === selectedLocation);
+  const displayLocationLabel = selectedLocation === "custom"
+    ? (customLocationText.trim() || "Custom Address")
+    : locationData?.label ?? "";
 
   const canProceed = () => {
     if (step === 0) return cart.length > 0;
-    if (step === 1) return !!selectedLocation;
+    if (step === 1) {
+      if (!selectedLocation) return false;
+      if (selectedLocation === "custom") return customLocationText.trim().length > 0;
+      return true;
+    }
     if (step === 2) return true;
     return true;
   };
@@ -83,7 +93,11 @@ export default function CartScreen() {
   const handleConfirmOrder = async () => {
     if (!selectedLocation) return;
     setLoading(true);
-    const order = await placeOrder(selectedLocation, selectedPayment);
+    const order = await placeOrder(
+      selectedLocation,
+      selectedPayment,
+      selectedLocation === "custom" ? customLocationText.trim() : undefined,
+    );
     setLoading(false);
     if (order) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -194,6 +208,52 @@ export default function CartScreen() {
                 </View>
               </Pressable>
             ))}
+
+            {/* Custom location option */}
+            <Pressable
+              style={[styles.locationCard, styles.customLocationCard, selectedLocation === "custom" && styles.locationCardActive]}
+              onPress={() => {
+                setSelectedLocation("custom");
+                Haptics.selectionAsync();
+                setTimeout(() => customInputRef.current?.focus(), 150);
+              }}
+            >
+              <View style={styles.locationLeft}>
+                <Feather name="edit-2" size={18} color={selectedLocation === "custom" ? Colors.primary : Colors.textMuted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.locationLabel, selectedLocation === "custom" && { color: Colors.primary }]}>
+                    Somewhere else...
+                  </Text>
+                  <Text style={styles.locationArea}>Type your own address or landmark</Text>
+                </View>
+              </View>
+              <View style={styles.locationRight}>
+                <Text style={[styles.locationFee, selectedLocation === "custom" && { color: Colors.primary }]}>J$400</Text>
+                {selectedLocation === "custom" && <Feather name="check-circle" size={16} color={Colors.primary} />}
+              </View>
+            </Pressable>
+
+            {selectedLocation === "custom" && (
+              <View style={styles.customInputContainer}>
+                <Feather name="map-pin" size={15} color={Colors.primary} style={{ marginTop: 2 }} />
+                <TextInput
+                  ref={customInputRef}
+                  style={styles.customInput}
+                  placeholder="e.g. Gate 2, near the cricket field…"
+                  placeholderTextColor={Colors.textMuted}
+                  value={customLocationText}
+                  onChangeText={setCustomLocationText}
+                  returnKeyType="done"
+                  multiline={false}
+                  maxLength={120}
+                />
+                {customLocationText.length > 0 && (
+                  <Pressable onPress={() => setCustomLocationText("")}>
+                    <Feather name="x" size={16} color={Colors.textMuted} />
+                  </Pressable>
+                )}
+              </View>
+            )}
           </>
         )}
 
@@ -237,7 +297,7 @@ export default function CartScreen() {
               <View style={styles.confirmItem}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Ionicons name="map-pin" size={14} color={Colors.primary} />
-                  <Text style={styles.confirmItemName}>{locationData?.label}</Text>
+                  <Text style={styles.confirmItemName}>{displayLocationLabel}</Text>
                 </View>
                 <Text style={styles.confirmItemPrice}>J${deliveryFee.toLocaleString()}</Text>
               </View>
@@ -356,6 +416,19 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   locationCardActive: { borderColor: Colors.primary, backgroundColor: "rgba(26,115,232,0.08)" },
+  customLocationCard: { borderStyle: "dashed" },
+  customInputContainer: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: Colors.backgroundCard,
+    borderRadius: 14, borderWidth: 1.5, borderColor: Colors.primary,
+    paddingHorizontal: 14, paddingVertical: 12,
+    marginTop: -4,
+  },
+  customInput: {
+    flex: 1, fontSize: 14, fontFamily: "Inter_400Regular",
+    color: Colors.text,
+    paddingVertical: 0,
+  },
   locationLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
   locationLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.text },
   locationArea: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textSecondary, marginTop: 2 },
