@@ -102,7 +102,7 @@ function OfferCard({ order, driverId, driverName }: { order: Order; driverId: st
       {/* Stats row */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <Ionicons name="map-pin" size={14} color={Colors.primary} />
+          <Ionicons name="location" size={14} color={Colors.primary} />
           <Text style={styles.statLabel}>{order.location}</Text>
         </View>
         <View style={styles.statItem}>

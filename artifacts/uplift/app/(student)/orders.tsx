@@ -96,7 +96,7 @@ function OrderCard({ order }: { order: Order }) {
       <View style={styles.cardFooter}>
         <View style={styles.footerLeft}>
           <View style={styles.locationRow}>
-            <Ionicons name="map-pin" size={12} color={Colors.textMuted} />
+            <Ionicons name="location" size={12} color={Colors.textMuted} />
             <Text style={styles.locationText} numberOfLines={1}>{order.location}</Text>
           </View>
           <View style={styles.paymentRow}>

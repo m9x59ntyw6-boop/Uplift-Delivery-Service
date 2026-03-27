@@ -196,7 +196,7 @@ export default function CartScreen() {
                 onPress={() => { setSelectedLocation(loc.id); Haptics.selectionAsync(); }}
               >
                 <View style={styles.locationLeft}>
-                  <Ionicons name="map-pin" size={18} color={selectedLocation === loc.id ? Colors.primary : Colors.textMuted} />
+                  <Ionicons name="location" size={18} color={selectedLocation === loc.id ? Colors.primary : Colors.textMuted} />
                   <View>
                     <Text style={[styles.locationLabel, selectedLocation === loc.id && { color: Colors.primary }]}>{loc.label}</Text>
                     <Text style={styles.locationArea}>{loc.area} • {loc.distanceKm} km away</Text>
@@ -296,7 +296,7 @@ export default function CartScreen() {
               <Text style={styles.confirmSectionTitle}>Delivery</Text>
               <View style={styles.confirmItem}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Ionicons name="map-pin" size={14} color={Colors.primary} />
+                  <Ionicons name="location" size={14} color={Colors.primary} />
                   <Text style={styles.confirmItemName}>{displayLocationLabel}</Text>
                 </View>
                 <Text style={styles.confirmItemPrice}>J${deliveryFee.toLocaleString()}</Text>

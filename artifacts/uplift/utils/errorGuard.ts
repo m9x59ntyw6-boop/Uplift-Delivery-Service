@@ -10,7 +10,7 @@
 export function setupGlobalErrorHandlers() {
   try {
     // Ensure ErrorUtils exists (some environments may not have it)
-    if (!global.ErrorUtils) {
+    if (!(global as any).ErrorUtils) {
       (global as any).ErrorUtils = {};
     }
 

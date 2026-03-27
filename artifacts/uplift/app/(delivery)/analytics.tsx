@@ -234,7 +234,7 @@ export default function AnalyticsScreen() {
             <View style={styles.itemsList}>
               {sorted.map(([area, count], i) => (
                 <View key={area} style={styles.topItemRow}>
-                  <Ionicons name="map-pin" size={14} color={Colors.primary} />
+                  <Ionicons name="location" size={14} color={Colors.primary} />
                   <Text style={[styles.topItemName, { flex: 1 }]}>{area}</Text>
                   <View style={styles.topItemBarWrap}>
                     <View style={[styles.topItemBar, { width: `${Math.round((count / maxCount) * 100)}%` as any, backgroundColor: Colors.primary }]} />
