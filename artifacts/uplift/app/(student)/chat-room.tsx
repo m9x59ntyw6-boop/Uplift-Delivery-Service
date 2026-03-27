@@ -26,7 +26,7 @@ function MessageBubble({ message, isMe }: { message: ChatMessage; isMe: boolean 
     <View style={[styles.bubbleWrap, isMe ? styles.bubbleRight : styles.bubbleLeft]}>
       {!isMe && (
         <View style={styles.senderAvatar}>
-          <Text style={styles.senderAvatarText}>{message.senderName.charAt(0)}</Text>
+          <Text style={styles.senderAvatarText}>{(message.senderName || "?").charAt(0)}</Text>
         </View>
       )}
       <View style={[styles.bubble, isMe ? styles.bubbleMe : message.isCustomerService ? styles.bubbleCS : styles.bubbleOther]}>

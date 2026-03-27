@@ -30,7 +30,7 @@ function MessageBubble({ message, isMe }: { message: ChatMessage; isMe: boolean 
         <View style={[styles.senderAvatar, { backgroundColor: isCS ? "rgba(26,115,232,0.15)" : "rgba(255,107,53,0.15)" }]}>
           {isCS
             ? <Feather name="headphones" size={13} color={Colors.primary} />
-            : <Text style={[styles.senderAvatarText, { color: Colors.accent }]}>{message.senderName.charAt(0)}</Text>
+            : <Text style={[styles.senderAvatarText, { color: Colors.accent }]}>{(message.senderName || "?").charAt(0)}</Text>
           }
         </View>
       )}
@@ -54,7 +54,10 @@ function MessageBubble({ message, isMe }: { message: ChatMessage; isMe: boolean 
 }
 
 function TypingBubble({ name }: { name: string }) {
-  const dots = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+  const dots = [dot1, dot2, dot3];
   useEffect(() => {
     dots.forEach((d, i) => {
       Animated.loop(Animated.sequence([
