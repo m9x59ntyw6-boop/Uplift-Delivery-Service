@@ -86,7 +86,7 @@ export default function WelcomeScreen() {
 
           <Pressable
             style={({ pressed }) => [styles.roleBtn, styles.deliveryBtn, pressed && styles.pressed]}
-            onPress={() => router.push({ pathname: "/(auth)/login", params: { role: "delivery" } })}
+            onPress={() => router.push("/(auth)/delivery-login")}
           >
             <View style={styles.roleBtnContent}>
               <View style={[styles.roleBtnIcon, { backgroundColor: "rgba(255,107,53,0.15)" }]}>

@@ -17,6 +17,10 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { OrderProvider } from "@/contexts/OrderContext";
+import { setupGlobalErrorHandlers } from "@/utils/errorGuard";
+
+// Install global crash guards as early as possible
+setupGlobalErrorHandlers();
 
 setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 
