@@ -24,7 +24,7 @@ function NativeTabLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="delivery-chat">
         <Icon sf={{ default: "bubble.left.and.bubble.right", selected: "bubble.left.and.bubble.right.fill" }} />
-        <Label>Chats{totalUnread > 0 ? ` (${totalUnread})` : ""}</Label>
+        <Label>{totalUnread > 0 ? `Chats (${totalUnread})` : "Chats"}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="analytics">
         <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
