@@ -1,0 +1,99 @@
+/**
+ * Push notification setup for Uplift.
+ * Works on physical devices with Expo Go.
+ * On simulators/web, gracefully skips with a warning.
+ */
+
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
+
+// How notifications appear when the app is in the foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+let _pushToken: string | null = null;
+
+/**
+ * Request notification permissions and return the Expo push token.
+ * Returns null if not on a physical device or if permission is denied.
+ */
+export async function registerForPushNotifications(): Promise<string | null> {
+  try {
+    // Push notifications only work on real devices
+    if (!Device.isDevice) {
+      console.log("[Notifications] Skipping — not a physical device");
+      return null;
+    }
+
+    // Android needs a notification channel
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("uplift-chat", {
+        name: "Uplift Chat",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#1A73E8",
+      });
+    }
+
+    // Check existing permission
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    // Request if not already granted
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      console.log("[Notifications] Permission denied");
+      return null;
+    }
+
+    // Get the Expo push token
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    _pushToken = token;
+    console.log("[Notifications] Push token registered:", token);
+    return token;
+  } catch (e) {
+    console.warn("[Notifications] Registration error:", e);
+    return null;
+  }
+}
+
+/**
+ * Show a local notification immediately (works even when app is open).
+ * Use when a chat message arrives and the app is in the foreground.
+ */
+export async function showLocalNotification(title: string, body: string) {
+  try {
+    if (!Device.isDevice) return;
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, sound: "default" },
+      trigger: null,
+    });
+  } catch (e) {
+    console.warn("[Notifications] Local notification error:", e);
+  }
+}
+
+/**
+ * Clear all pending notifications (call when user opens the chat).
+ */
+export async function clearNotifications() {
+  try {
+    await Notifications.dismissAllNotificationsAsync();
+  } catch {}
+}
+
+export function getPushToken() {
+  return _pushToken;
+}
