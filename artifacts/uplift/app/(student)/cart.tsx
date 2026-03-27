@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary, borderRadius: 14, height: 54,
     ...makeShadow(Colors.primary, 4, 0.4, 12, 8),
   },
-  actionBtnDisabled: { backgroundColor: Colors.backgroundElevated, shadowOpacity: 0 },
+  actionBtnDisabled: { backgroundColor: Colors.backgroundElevated, ...makeShadow("#000", 0, 0, 0, 0) },
   confirmBtn: { backgroundColor: Colors.success },
   actionBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });
