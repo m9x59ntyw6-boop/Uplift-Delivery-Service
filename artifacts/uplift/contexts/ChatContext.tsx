@@ -55,6 +55,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     loadChats();
   }, []);
 
+  // ── Delivery staff: auto-join all rooms for real-time updates ───────────
+  useEffect(() => {
+    if (!user || user.role !== "delivery" || rooms.length === 0) return;
+    rooms.forEach(r => {
+      try { joinRoom(r.id); } catch {}
+    });
+  }, [user?.id, rooms.length]);
+
   // ── Connect socket when user logs in, disconnect on logout ───────────────
   useEffect(() => {
     if (!user) {
@@ -214,8 +222,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // Also broadcast via socket (real-time to other devices)
       emitMessage(roomId, msg);
 
-      // Auto-reply from Customer Service if user message
-      if (!isCustomerService) {
+      // Auto-reply from Customer Service only if student/staff sent it (not delivery)
+      if (!isCustomerService && user?.role !== "delivery") {
         setTimeout(() => {
           const autoReply: ChatMessage = {
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),

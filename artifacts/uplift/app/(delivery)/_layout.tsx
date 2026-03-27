@@ -6,8 +6,12 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Colors } from "@/constants/colors";
+import { useChat } from "@/contexts/ChatContext";
 
 function NativeTabLayout() {
+  const { rooms } = useChat();
+  const totalUnread = rooms.reduce((s, r) => s + r.unread, 0);
+
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
@@ -18,9 +22,9 @@ function NativeTabLayout() {
         <Icon sf={{ default: "banknote", selected: "banknote.fill" }} />
         <Label>Earnings</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="menu-editor">
-        <Icon sf={{ default: "square.and.pencil", selected: "square.and.pencil" }} />
-        <Label>Menu</Label>
+      <NativeTabs.Trigger name="delivery-chat">
+        <Icon sf={{ default: "bubble.left.and.bubble.right", selected: "bubble.left.and.bubble.right.fill" }} />
+        <Label>Chats{totalUnread > 0 ? ` (${totalUnread})` : ""}</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="analytics">
         <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
@@ -35,6 +39,9 @@ function NativeTabLayout() {
 }
 
 function ClassicTabLayout() {
+  const { rooms } = useChat();
+  const totalUnread = rooms.reduce((s, r) => s + r.unread, 0);
+
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -87,10 +94,12 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu-editor"
+        name="delivery-chat"
         options={{
-          title: "Menu",
-          tabBarIcon: ({ color }) => renderIcon("square.and.pencil", "edit-2", color),
+          title: "Chats",
+          tabBarIcon: ({ color }) => renderIcon("bubble.left.and.bubble.right", "message-circle", color),
+          tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
+          tabBarBadgeStyle: { backgroundColor: Colors.accent, fontSize: 10 },
         }}
       />
       <Tabs.Screen
@@ -107,6 +116,9 @@ function ClassicTabLayout() {
           tabBarIcon: ({ color }) => renderIcon("person", "user", color),
         }}
       />
+      {/* Hidden screens — navigable but not in tab bar */}
+      <Tabs.Screen name="delivery-chat-room" options={{ href: null }} />
+      <Tabs.Screen name="menu-editor" options={{ href: null }} />
     </Tabs>
   );
 }
