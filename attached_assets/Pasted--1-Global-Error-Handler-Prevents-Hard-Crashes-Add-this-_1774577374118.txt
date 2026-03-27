@@ -1,0 +1,161 @@
+
+🛡️ 1. Global Error Handler (Prevents Hard Crashes)
+
+Add this at the very top of your App.js or index.js:
+
+// Global error handler
+if (!global.ErrorUtils) {
+  global.ErrorUtils = {};
+}
+
+global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+  console.log("Global Error Caught:", error);
+
+  if (isFatal) {
+    alert("Something went wrong. Please restart the app.");
+  }
+});
+
+👉 This catches crashes instead of letting Expo Go close the app.
+
+⸻
+
+🔄 2. Safe App Wrapper (Error Boundary)
+
+Wrap your app so UI errors don’t crash everything:
+
+import React from "react";
+import { View, Text } from "react-native";
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, info) {
+    console.log("Error Boundary caught:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text>⚠️ App crashed. Restarting might fix it.</Text>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+
+Then wrap your main app:
+
+import ErrorBoundary from "./ErrorBoundary";
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <MainApp />
+    </ErrorBoundary>
+  );
+}
+
+
+⸻
+
+⏳ 3. Safe Loading (Prevents Startup Crashes)
+
+A lot of Expo crashes happen when data loads too early.
+
+import React, { useEffect, useState } from "react";
+import { Text, View, ActivityIndicator } from "react-native";
+
+export default function MainApp() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const loadApp = async () => {
+      try {
+        // simulate loading (API, storage, etc.)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setReady(true);
+      } catch (e) {
+        console.log("Startup error:", e);
+      }
+    };
+
+    loadApp();
+  }, []);
+
+  if (!ready) {
+    return <ActivityIndicator size="large" />;
+  }
+
+  return (
+    <View>
+      <Text>App Loaded Safely ✅</Text>
+    </View>
+  );
+}
+
+
+⸻
+
+🔐 4. Prevent Common Replit → Expo Crashes
+
+These are VERY common issues when using Replit:
+
+✅ Always check before using data
+
+if (data && data.user) {
+  console.log(data.user.name);
+}
+
+✅ Avoid undefined navigation
+
+if (navigation) {
+  navigation.navigate("Home");
+}
+
+✅ Handle async errors
+
+try {
+  const res = await fetch(url);
+} catch (error) {
+  console.log("Network error:", error);
+}
+
+
+⸻
+
+⚠️ 5. Extra Stability Tips (Important)
+	•	Don’t use Node-only packages (Replit often installs them)
+	•	Stick to Expo-compatible libraries
+	•	Clear cache if crashing:
+
+npx expo start -c
+
+
+	•	Avoid infinite loops in useEffect
+
+⸻
+
+💡 Bonus (Production-Level Protection)
+
+Install better logging:
+
+npm install expo-error-recovery
+
+Then:
+
+import * as ErrorRecovery from 'expo-error-recovery';
+
+

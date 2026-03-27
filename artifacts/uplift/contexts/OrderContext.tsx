@@ -197,24 +197,43 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   const loadData = async () => {
     try {
       const [menuStored, ordersStored, dpStored] = await Promise.all([
-        AsyncStorage.getItem(MENU_KEY),
-        AsyncStorage.getItem(ORDERS_KEY),
-        AsyncStorage.getItem(DELIVERY_KEY),
+        AsyncStorage.getItem(MENU_KEY).catch(() => null),
+        AsyncStorage.getItem(ORDERS_KEY).catch(() => null),
+        AsyncStorage.getItem(DELIVERY_KEY).catch(() => null),
       ]);
-      if (menuStored) setMenuItems(JSON.parse(menuStored));
-      if (ordersStored) setOrders(JSON.parse(ordersStored));
-      if (dpStored) setDeliveryPersons(JSON.parse(dpStored));
-    } catch {}
+
+      // Always check before parsing — malformed data should not crash the app
+      if (menuStored) {
+        try { setMenuItems(JSON.parse(menuStored)); } catch { console.warn("[Orders] Could not parse menu data"); }
+      }
+      if (ordersStored) {
+        try { setOrders(JSON.parse(ordersStored)); } catch { console.warn("[Orders] Could not parse orders data"); }
+      }
+      if (dpStored) {
+        try { setDeliveryPersons(JSON.parse(dpStored)); } catch { console.warn("[Orders] Could not parse delivery persons data"); }
+      }
+    } catch (e) {
+      console.warn("[Orders] Failed to load data:", e);
+    }
   };
 
   const saveOrders = async (o: Order[]) => {
+    // Always update state immediately — storage failure should not block the UI
     setOrders(o);
-    await AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(o));
+    try {
+      await AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(o));
+    } catch (e) {
+      console.warn("[Orders] Failed to save orders:", e);
+    }
   };
 
   const saveDeliveryPersons = async (dp: DeliveryPerson[]) => {
     setDeliveryPersons(dp);
-    await AsyncStorage.setItem(DELIVERY_KEY, JSON.stringify(dp));
+    try {
+      await AsyncStorage.setItem(DELIVERY_KEY, JSON.stringify(dp));
+    } catch (e) {
+      console.warn("[Orders] Failed to save delivery persons:", e);
+    }
   };
 
   const addToCart = (item: MenuItem, size: FoodSize) => {
@@ -247,6 +266,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   };
 
   const placeOrder = async (locationId: string, paymentMethod: PaymentMethod): Promise<Order | null> => {
+    try {
     if (!user || cart.length === 0) return null;
     const locationData = JAMAICA_LOCATIONS.find(l => l.id === locationId) ?? null;
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -280,6 +300,10 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     await saveOrders([order, ...orders]);
     clearCart();
     return order;
+    } catch (e) {
+      console.warn("[Orders] Failed to place order:", e);
+      return null;
+    }
   };
 
   const acceptOrder = async (orderId: string, deliveryPersonId: string, deliveryPersonName: string) => {
