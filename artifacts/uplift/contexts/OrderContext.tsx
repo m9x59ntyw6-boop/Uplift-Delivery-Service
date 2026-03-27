@@ -81,21 +81,21 @@ export interface DeliveryPerson {
 }
 
 export const JAMAICA_LOCATIONS: JamaicaLocation[] = [
-  { id: "loc1", label: "Half Way Tree (HWT)", area: "Kingston", deliveryFee: 200, latitude: 17.9972, longitude: -76.7940, distanceKm: 3.2 },
-  { id: "loc2", label: "Portmore", area: "St. Catherine", deliveryFee: 350, latitude: 17.9516, longitude: -76.8716, distanceKm: 12.5 },
-  { id: "loc3", label: "New Kingston", area: "Kingston", deliveryFee: 250, latitude: 17.9940, longitude: -76.7900, distanceKm: 4.1 },
-  { id: "loc4", label: "Constant Spring", area: "Kingston", deliveryFee: 300, latitude: 18.0372, longitude: -76.7970, distanceKm: 6.8 },
-  { id: "loc5", label: "Liguanea", area: "Kingston", deliveryFee: 200, latitude: 18.0069, longitude: -76.7649, distanceKm: 2.1 },
-  { id: "loc6", label: "Spanish Town", area: "St. Catherine", deliveryFee: 400, latitude: 17.9906, longitude: -76.9565, distanceKm: 18.3 },
-  { id: "loc7", label: "Crossroads", area: "Kingston", deliveryFee: 200, latitude: 17.9927, longitude: -76.7975, distanceKm: 3.5 },
-  { id: "loc8", label: "Barbican", area: "Kingston", deliveryFee: 250, latitude: 18.0214, longitude: -76.7620, distanceKm: 4.9 },
-  { id: "loc9", label: "Papine", area: "Kingston", deliveryFee: 150, latitude: 18.0179, longitude: -76.7438, distanceKm: 1.2 },
-  { id: "loc10", label: "Matilda's Corner", area: "Kingston", deliveryFee: 200, latitude: 18.0020, longitude: -76.7620, distanceKm: 2.6 },
-  { id: "loc11", label: "Maxfield Avenue", area: "Kingston", deliveryFee: 250, latitude: 17.9870, longitude: -76.8010, distanceKm: 4.4 },
-  { id: "loc12", label: "Three Miles", area: "Kingston", deliveryFee: 250, latitude: 17.9820, longitude: -76.8200, distanceKm: 5.8 },
-  { id: "loc13", label: "UWI Mona Campus", area: "Kingston", deliveryFee: 150, latitude: 18.0029, longitude: -76.7481, distanceKm: 0.8 },
-  { id: "loc14", label: "Meadowbrook", area: "Kingston", deliveryFee: 250, latitude: 18.0200, longitude: -76.7830, distanceKm: 4.0 },
-  { id: "loc15", label: "Stony Hill", area: "Kingston", deliveryFee: 350, latitude: 18.0647, longitude: -76.7711, distanceKm: 9.1 },
+  { id: "loc1", label: "Half Way Tree (HWT)", area: "Kingston", deliveryFee: 50, latitude: 17.9972, longitude: -76.7940, distanceKm: 3.2 },
+  { id: "loc2", label: "Portmore", area: "St. Catherine", deliveryFee: 50, latitude: 17.9516, longitude: -76.8716, distanceKm: 12.5 },
+  { id: "loc3", label: "New Kingston", area: "Kingston", deliveryFee: 50, latitude: 17.9940, longitude: -76.7900, distanceKm: 4.1 },
+  { id: "loc4", label: "Constant Spring", area: "Kingston", deliveryFee: 50, latitude: 18.0372, longitude: -76.7970, distanceKm: 6.8 },
+  { id: "loc5", label: "Liguanea", area: "Kingston", deliveryFee: 50, latitude: 18.0069, longitude: -76.7649, distanceKm: 2.1 },
+  { id: "loc6", label: "Spanish Town", area: "St. Catherine", deliveryFee: 50, latitude: 17.9906, longitude: -76.9565, distanceKm: 18.3 },
+  { id: "loc7", label: "Crossroads", area: "Kingston", deliveryFee: 50, latitude: 17.9927, longitude: -76.7975, distanceKm: 3.5 },
+  { id: "loc8", label: "Barbican", area: "Kingston", deliveryFee: 50, latitude: 18.0214, longitude: -76.7620, distanceKm: 4.9 },
+  { id: "loc9", label: "Papine", area: "Kingston", deliveryFee: 50, latitude: 18.0179, longitude: -76.7438, distanceKm: 1.2 },
+  { id: "loc10", label: "Matilda's Corner", area: "Kingston", deliveryFee: 50, latitude: 18.0020, longitude: -76.7620, distanceKm: 2.6 },
+  { id: "loc11", label: "Maxfield Avenue", area: "Kingston", deliveryFee: 50, latitude: 17.9870, longitude: -76.8010, distanceKm: 4.4 },
+  { id: "loc12", label: "Three Miles", area: "Kingston", deliveryFee: 50, latitude: 17.9820, longitude: -76.8200, distanceKm: 5.8 },
+  { id: "loc13", label: "UWI Mona Campus", area: "Kingston", deliveryFee: 50, latitude: 18.0029, longitude: -76.7481, distanceKm: 0.8 },
+  { id: "loc14", label: "Meadowbrook", area: "Kingston", deliveryFee: 50, latitude: 18.0200, longitude: -76.7830, distanceKm: 4.0 },
+  { id: "loc15", label: "Stony Hill", area: "Kingston", deliveryFee: 50, latitude: 18.0647, longitude: -76.7711, distanceKm: 9.1 },
 ];
 
 export const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: string; description: string }[] = [
@@ -261,10 +261,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     return 0;
   };
 
-  const getDeliveryFee = (locationId: string): number => {
-    if (locationId === "custom") return 400;
-    return JAMAICA_LOCATIONS.find(l => l.id === locationId)?.deliveryFee ?? 200;
-  };
+  const getDeliveryFee = (_locationId: string): number => 50;
 
   const placeOrder = async (locationId: string, paymentMethod: PaymentMethod, customLabel?: string): Promise<Order | null> => {
     try {
@@ -274,7 +271,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const discountRate = getStreakDiscount();
     const discount = Math.floor(subtotal * discountRate);
-    const deliveryFee = isCustom ? 400 : (locationData?.deliveryFee ?? 200);
+    const deliveryFee = 50;
     const total = subtotal - discount + deliveryFee;
 
     const order: Order = {

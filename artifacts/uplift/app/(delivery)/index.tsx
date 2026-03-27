@@ -33,7 +33,7 @@ function OfferCard({ order, driverId, driverName }: { order: Order; driverId: st
 
   const isMyOrder = order.deliveryPersonId === driverId;
   const distanceKm = order.locationData?.distanceKm ?? 3.0;
-  const earnings = Math.round(order.total * DRIVER_EARNINGS_RATE + (order.deliveryFee ?? 150));
+  const earnings = Math.round(order.total * DRIVER_EARNINGS_RATE + (order.deliveryFee ?? 50));
   const estimatedMin = Math.round(distanceKm * 4 + 8);
 
   const destLat = order.locationData?.latitude ?? 18.0100;
@@ -286,7 +286,7 @@ export default function DeliveryOrdersScreen() {
         <View style={styles.statsBarDivider} />
         <View style={styles.statsBarItem}>
           <Text style={[styles.statsBarNum, { color: Colors.success }]}>
-            J${myCompleted.reduce((s, o) => s + Math.round(o.total * 0.15 + (o.deliveryFee ?? 150)), 0).toLocaleString()}
+            J${myCompleted.reduce((s, o) => s + Math.round(o.total * DRIVER_EARNINGS_RATE + (o.deliveryFee ?? 50)), 0).toLocaleString()}
           </Text>
           <Text style={styles.statsBarLabel}>Today's Earnings</Text>
         </View>
@@ -334,7 +334,7 @@ export default function DeliveryOrdersScreen() {
                     <Text style={styles.completedId}>#{o.id.slice(-6).toUpperCase()}</Text>
                     <Text style={styles.completedCustomer}>{o.userName} • {o.location}</Text>
                   </View>
-                  <Text style={styles.completedEarnings}>+J${Math.round(o.total * 0.15 + (o.deliveryFee ?? 150)).toLocaleString()}</Text>
+                  <Text style={styles.completedEarnings}>+J${Math.round(o.total * DRIVER_EARNINGS_RATE + (o.deliveryFee ?? 50)).toLocaleString()}</Text>
                 </View>
               ))}
             </View>

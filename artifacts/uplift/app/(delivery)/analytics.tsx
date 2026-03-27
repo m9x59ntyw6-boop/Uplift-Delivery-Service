@@ -68,7 +68,7 @@ export default function AnalyticsScreen() {
         const od = new Date(o.createdAt);
         return od.toDateString() === d.toDateString();
       });
-      const earned = dayOrders.reduce((s, o) => s + Math.round(o.total * DRIVER_EARNINGS_RATE + (o.deliveryFee ?? 150)), 0);
+      const earned = dayOrders.reduce((s, o) => s + Math.round(o.total * DRIVER_EARNINGS_RATE + (o.deliveryFee ?? 50)), 0);
       return { label: DAYS[d.getDay()], value: earned };
     });
 
@@ -114,7 +114,7 @@ export default function AnalyticsScreen() {
   const todayEarnings = myDeliveries.filter(o => {
     const today = new Date();
     return new Date(o.createdAt).toDateString() === today.toDateString();
-  }).reduce((s, o) => s + Math.round(o.total * DRIVER_EARNINGS_RATE + (o.deliveryFee ?? 150)), 0);
+  }).reduce((s, o) => s + Math.round(o.total * DRIVER_EARNINGS_RATE + (o.deliveryFee ?? 50)), 0);
 
   return (
     <ScrollView

@@ -228,7 +228,7 @@ export default function CartScreen() {
                 </View>
               </View>
               <View style={styles.locationRight}>
-                <Text style={[styles.locationFee, selectedLocation === "custom" && { color: Colors.primary }]}>J$400</Text>
+                <Text style={[styles.locationFee, selectedLocation === "custom" && { color: Colors.primary }]}>J$50</Text>
                 {selectedLocation === "custom" && <Feather name="check-circle" size={16} color={Colors.primary} />}
               </View>
             </Pressable>
