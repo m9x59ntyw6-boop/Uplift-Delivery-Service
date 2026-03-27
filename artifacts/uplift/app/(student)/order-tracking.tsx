@@ -18,6 +18,7 @@ import { Order, OrderStatus, STATUS_LABELS, STATUS_MESSAGES, useOrders } from "@
 import { useChat } from "@/contexts/ChatContext";
 import { useAuth } from "@/contexts/AuthContext";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import { MapErrorBoundary } from "@/components/SafeMapView";
 
 const STATUS_FLOW: OrderStatus[] = [
   "order_placed",
@@ -130,36 +131,38 @@ export default function OrderTrackingScreen() {
 
         {/* Map */}
         <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: (driverLat + destLat) / 2,
-              longitude: (driverLng + destLng) / 2,
-              latitudeDelta: 0.025,
-              longitudeDelta: 0.025,
-            }}
-          >
-            {order.deliveryPersonName && (
-              <Marker coordinate={{ latitude: driverLat, longitude: driverLng }} title={order.deliveryPersonName} description="Your driver">
-                <View style={styles.driverMarker}>
-                  <Ionicons name="bicycle" size={18} color="#fff" />
-                </View>
-              </Marker>
-            )}
-            <Marker coordinate={{ latitude: destLat, longitude: destLng }} title="Delivery Location" description={order.location} pinColor={Colors.primary} />
-            {order.deliveryPersonName && (
-              <Polyline
-                coordinates={[
-                  { latitude: driverLat, longitude: driverLng },
-                  { latitude: (driverLat + destLat) / 2, longitude: (driverLng + destLng) / 2 - 0.002 },
-                  { latitude: destLat, longitude: destLng },
-                ]}
-                strokeColor={Colors.primary}
-                strokeWidth={3}
-                lineDashPattern={[6, 3]}
-              />
-            )}
-          </MapView>
+          <MapErrorBoundary style={styles.map}>
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: (driverLat + destLat) / 2,
+                longitude: (driverLng + destLng) / 2,
+                latitudeDelta: 0.025,
+                longitudeDelta: 0.025,
+              }}
+            >
+              {order.deliveryPersonName && (
+                <Marker coordinate={{ latitude: driverLat, longitude: driverLng }} title={order.deliveryPersonName} description="Your driver">
+                  <View style={styles.driverMarker}>
+                    <Ionicons name="bicycle" size={18} color="#fff" />
+                  </View>
+                </Marker>
+              )}
+              <Marker coordinate={{ latitude: destLat, longitude: destLng }} title="Delivery Location" description={order.location} pinColor={Colors.primary} />
+              {order.deliveryPersonName && (
+                <Polyline
+                  coordinates={[
+                    { latitude: driverLat, longitude: driverLng },
+                    { latitude: (driverLat + destLat) / 2, longitude: (driverLng + destLng) / 2 - 0.002 },
+                    { latitude: destLat, longitude: destLng },
+                  ]}
+                  strokeColor={Colors.primary}
+                  strokeWidth={3}
+                  lineDashPattern={[6, 3]}
+                />
+              )}
+            </MapView>
+          </MapErrorBoundary>
           {/* Live indicator */}
           {order.status === "out_for_delivery" && (
             <View style={styles.liveChip}>

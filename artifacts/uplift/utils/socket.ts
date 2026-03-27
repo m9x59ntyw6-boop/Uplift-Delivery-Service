@@ -46,11 +46,16 @@ export function getSocket(): Socket {
       console.log("[Socket] Disconnected:", reason);
     });
 
+    let _connectErrorCount = 0;
     _socket.on("connect_error", (err) => {
       _isConnected = false;
-      // Don't crash — just warn. Chat will work offline via local storage.
-      console.warn("[Socket] Connection error (offline mode active):", err.message);
+      _connectErrorCount++;
+      // Log first error, then silence — chat works offline via local storage
+      if (_connectErrorCount <= 1) {
+        console.log("[Socket] Offline mode — chat messages saved locally:", err.message);
+      }
     });
+    _socket.on("connect", () => { _connectErrorCount = 0; });
   }
   return _socket;
 }

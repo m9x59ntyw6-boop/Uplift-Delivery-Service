@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import { MapErrorBoundary } from "@/components/SafeMapView";
 import { Colors } from "@/constants/colors";
 import { Order, STATUS_LABELS, useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -176,28 +177,30 @@ function OfferCard({ order, driverId, driverName }: { order: Order; driverId: st
               <Feather name="x" size={22} color={Colors.text} />
             </Pressable>
           </View>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: (SCHOOL_LAT + destLat) / 2,
-              longitude: (SCHOOL_LNG + destLng) / 2,
-              latitudeDelta: Math.max(0.02, Math.abs(SCHOOL_LAT - destLat) * 2.5),
-              longitudeDelta: Math.max(0.02, Math.abs(SCHOOL_LNG - destLng) * 2.5),
-            }}
-          >
-            <Marker coordinate={{ latitude: SCHOOL_LAT, longitude: SCHOOL_LNG }} title="Pickup (School)" pinColor="blue" />
-            <Marker coordinate={{ latitude: destLat, longitude: destLng }} title={`Drop-off: ${order.location}`} description={order.userName} />
-            <Polyline
-              coordinates={[
-                { latitude: SCHOOL_LAT, longitude: SCHOOL_LNG },
-                { latitude: (SCHOOL_LAT + destLat) / 2 + 0.002, longitude: (SCHOOL_LNG + destLng) / 2 },
-                { latitude: destLat, longitude: destLng },
-              ]}
-              strokeColor={Colors.accent}
-              strokeWidth={4}
-              lineDashPattern={[8, 4]}
-            />
-          </MapView>
+          <MapErrorBoundary style={styles.map}>
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: (SCHOOL_LAT + destLat) / 2,
+                longitude: (SCHOOL_LNG + destLng) / 2,
+                latitudeDelta: Math.max(0.02, Math.abs(SCHOOL_LAT - destLat) * 2.5),
+                longitudeDelta: Math.max(0.02, Math.abs(SCHOOL_LNG - destLng) * 2.5),
+              }}
+            >
+              <Marker coordinate={{ latitude: SCHOOL_LAT, longitude: SCHOOL_LNG }} title="Pickup (School)" pinColor="blue" />
+              <Marker coordinate={{ latitude: destLat, longitude: destLng }} title={`Drop-off: ${order.location}`} description={order.userName} />
+              <Polyline
+                coordinates={[
+                  { latitude: SCHOOL_LAT, longitude: SCHOOL_LNG },
+                  { latitude: (SCHOOL_LAT + destLat) / 2 + 0.002, longitude: (SCHOOL_LNG + destLng) / 2 },
+                  { latitude: destLat, longitude: destLng },
+                ]}
+                strokeColor={Colors.accent}
+                strokeWidth={4}
+                lineDashPattern={[8, 4]}
+              />
+            </MapView>
+          </MapErrorBoundary>
           <View style={styles.navInfoCards}>
             <View style={styles.navInfoCard}>
               <Ionicons name="navigate" size={18} color={Colors.primary} />

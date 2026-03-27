@@ -210,10 +210,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       };
 
       // Save locally immediately (works offline)
+      // Cap at 150 messages per room to prevent AsyncStorage bloat
+      const MSG_CAP = 150;
       setRooms(prev => {
         const updated = prev.map(r => {
           if (r.id !== roomId) return r;
-          return { ...r, messages: [...r.messages, msg], lastMessage: content, lastTimestamp: msg.timestamp, unread: r.unread + (isCustomerService ? 1 : 0) };
+          const msgs = [...r.messages, msg];
+          const trimmed = msgs.length > MSG_CAP ? msgs.slice(msgs.length - MSG_CAP) : msgs;
+          return { ...r, messages: trimmed, lastMessage: content, lastTimestamp: msg.timestamp, unread: r.unread + (isCustomerService ? 1 : 0) };
         });
         AsyncStorage.setItem(CHAT_KEY, JSON.stringify(updated)).catch(() => {});
         return updated;
@@ -234,12 +238,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             isCustomerService: true,
           };
           setRooms(prev => {
-            const r2 = prev.map(r => r.id !== roomId ? r : {
-              ...r,
-              messages: [...r.messages, autoReply],
-              lastMessage: autoReply.content,
-              lastTimestamp: autoReply.timestamp,
-              unread: r.unread + 1,
+            const r2 = prev.map(r => {
+              if (r.id !== roomId) return r;
+              const msgs = [...r.messages, autoReply];
+              const trimmed = msgs.length > MSG_CAP ? msgs.slice(msgs.length - MSG_CAP) : msgs;
+              return { ...r, messages: trimmed, lastMessage: autoReply.content, lastTimestamp: autoReply.timestamp, unread: r.unread + 1 };
             });
             AsyncStorage.setItem(CHAT_KEY, JSON.stringify(r2)).catch(() => {});
             return r2;
