@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
-import { CartItem, DeliveryPerson, JAMAICA_LOCATIONS, OPENING_HOURS, PAYMENT_METHODS, PaymentMethod, useOrders } from "@/contexts/OrderContext";
+import { CartItem, DeliveryPerson, JAMAICA_LOCATIONS, PAYMENT_METHODS, PaymentMethod, useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { makeShadow } from "@/utils/shadow";
 

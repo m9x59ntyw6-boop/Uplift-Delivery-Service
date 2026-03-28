@@ -218,6 +218,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     const handleAppState = (nextState: AppStateStatus) => {
       if (nextState === "active") {
         loadData();
+        setIsShopOpen(isShopCurrentlyOpen());
       }
     };
     const sub = AppState.addEventListener("change", handleAppState);
