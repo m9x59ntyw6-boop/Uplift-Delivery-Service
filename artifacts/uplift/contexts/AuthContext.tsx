@@ -3,6 +3,16 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 
 export type UserRole = "student_staff" | "delivery";
 
+export interface SavedAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  savedAt: string;
+  staffId?: string;
+  avatarColor: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -37,20 +47,34 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
   loginDelivery: (staffId: string, code: string) => Promise<"success" | "wrong_code" | "not_found">;
+  loginWithSavedAccount: (account: SavedAccount) => Promise<"ok" | "bad_creds" | "error">;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   agreeToTerms: () => void;
   updateStreak: () => void;
   getSavedEmail: () => Promise<string>;
+  getSavedAccounts: () => Promise<SavedAccount[]>;
+  removeSavedAccount: (id: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const STORAGE_KEY      = "@uplift_user_v2";
-const USERS_KEY        = "@uplift_users_v2";
-const CREDENTIALS_KEY  = "@uplift_credentials_v2";   // { email: password }
-const LAST_EMAIL_KEY   = "@uplift_last_email_v2";    // last successful login email
+const STORAGE_KEY        = "@uplift_user_v2";
+const USERS_KEY          = "@uplift_users_v2";
+const CREDENTIALS_KEY    = "@uplift_credentials_v2";     // { email: password }
+const LAST_EMAIL_KEY     = "@uplift_last_email_v2";      // last successful login email
+const SAVED_ACCOUNTS_KEY = "@uplift_saved_accounts_v2";  // Instagram-style saved accounts
+
+const AVATAR_COLORS = [
+  "#1A73E8", "#FF6B35", "#8B5CF6", "#10B981", "#F59E0B",
+  "#EC4899", "#06B6D4", "#84CC16", "#EF4444", "#F97316",
+];
+function avatarColorFor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
 
 const DEMO_USERS: User[] = DELIVERY_STAFF.map(s => ({
   id: s.id, name: s.name, email: s.email,
@@ -161,6 +185,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ── Saved accounts (Instagram-style) ──────────────────────────────────────
+  const getSavedAccounts = async (): Promise<SavedAccount[]> => {
+    try {
+      const raw = await AsyncStorage.getItem(SAVED_ACCOUNTS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  };
+
+  const upsertSavedAccount = async (account: SavedAccount) => {
+    try {
+      const existing = await getSavedAccounts();
+      const filtered = existing.filter(a => a.id !== account.id);
+      const updated = [account, ...filtered]; // most-recently-used first
+      await AsyncStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn("[Auth] Failed to save account:", e);
+    }
+  };
+
+  const removeSavedAccount = async (id: string) => {
+    try {
+      const existing = await getSavedAccounts();
+      await AsyncStorage.setItem(
+        SAVED_ACCOUNTS_KEY,
+        JSON.stringify(existing.filter(a => a.id !== id))
+      );
+    } catch (e) {
+      console.warn("[Auth] Failed to remove account:", e);
+    }
+  };
+
+  const loginWithSavedAccount = async (
+    account: SavedAccount
+  ): Promise<"ok" | "bad_creds" | "error"> => {
+    try {
+      if (account.role === "delivery") {
+        const staff = DELIVERY_STAFF.find(s => s.id === account.staffId);
+        if (!staff) return "bad_creds";
+        const result = await loginDelivery(staff.id, staff.code);
+        return result === "success" ? "ok" : "bad_creds";
+      } else {
+        const creds = await getCredentials();
+        const password = creds[account.email.toLowerCase()];
+        if (!password) return "bad_creds";
+        const ok = await login(account.email, password, "student_staff");
+        return ok ? "ok" : "bad_creds";
+      }
+    } catch (e) {
+      console.warn("[Auth] loginWithSavedAccount error:", e);
+      return "error";
+    }
+  };
+
   // ── Standard email/password login (students & staff) ──────────────────────
   const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
     try {
@@ -178,6 +255,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await saveUser(found);
       await saveLastEmail(email);
+      // Persist to saved-accounts list
+      await upsertSavedAccount({
+        id: found.id, name: found.name, email: found.email,
+        role: "student_staff", savedAt: new Date().toISOString(),
+        avatarColor: avatarColorFor(found.name),
+      });
       return true;
     } catch (e) {
       console.warn("[Auth] Login error:", e);
@@ -200,6 +283,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         streakDays: 0, lastOrderDate: null, streakAchievedAt: null, agreedToTerms: true,
       };
       await saveUser(found);
+      // Persist to saved-accounts list
+      await upsertSavedAccount({
+        id: found.id, name: found.name, email: found.email,
+        role: "delivery", staffId: found.id,
+        savedAt: new Date().toISOString(),
+        avatarColor: avatarColorFor(found.name),
+      });
       return "success";
     } catch (e) {
       console.warn("[Auth] Delivery login error:", e);
@@ -268,8 +358,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(() => ({
-    user, isLoading, login, loginDelivery, register, logout,
+    user, isLoading, login, loginDelivery, loginWithSavedAccount, register, logout,
     updateUser, agreeToTerms, updateStreak, getSavedEmail,
+    getSavedAccounts, removeSavedAccount,
   }), [user, isLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
