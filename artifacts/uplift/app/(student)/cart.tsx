@@ -15,11 +15,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
-import { CartItem, JAMAICA_LOCATIONS, PAYMENT_METHODS, PaymentMethod, useOrders } from "@/contexts/OrderContext";
+import { CartItem, DeliveryPerson, JAMAICA_LOCATIONS, OPENING_HOURS, PAYMENT_METHODS, PaymentMethod, useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { makeShadow } from "@/utils/shadow";
 
-const STEPS = ["Cart", "Location", "Payment", "Confirm"];
+const STEPS = ["Cart", "Location", "Payment", "Driver", "Confirm"];
 
 function CartItemRow({ item }: { item: CartItem }) {
   const { addToCart, removeFromCart, menuItems } = useOrders();
@@ -49,12 +49,14 @@ function CartItemRow({ item }: { item: CartItem }) {
 
 export default function CartScreen() {
   const insets = useSafeAreaInsets();
-  const { cart, cartTotal, cartCount, getStreakDiscount, getDeliveryFee, placeOrder, clearCart } = useOrders();
+  const { cart, cartTotal, cartCount, getStreakDiscount, getDeliveryFee, placeOrder, clearCart, deliveryPersons, isShopOpen } = useOrders();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [customLocationText, setCustomLocationText] = useState("");
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("cash");
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const [driverBusyWarning, setDriverBusyWarning] = useState(false);
   const [loading, setLoading] = useState(false);
   const customInputRef = useRef<TextInput>(null);
 
@@ -66,8 +68,10 @@ export default function CartScreen() {
   const displayLocationLabel = selectedLocation === "custom"
     ? (customLocationText.trim() || "Custom Address")
     : locationData?.label ?? "";
+  const selectedDriver = deliveryPersons.find(d => d.id === selectedDriverId) ?? null;
 
   const canProceed = () => {
+    if (!isShopOpen) return false;
     if (step === 0) return cart.length > 0;
     if (step === 1) {
       if (!selectedLocation) return false;
@@ -75,6 +79,7 @@ export default function CartScreen() {
       return true;
     }
     if (step === 2) return true;
+    if (step === 3) return true;
     return true;
   };
 
@@ -90,6 +95,16 @@ export default function CartScreen() {
     else router.back();
   };
 
+  const handleSelectDriver = (dp: DeliveryPerson) => {
+    if (!dp.isAvailable) {
+      setDriverBusyWarning(true);
+      setTimeout(() => setDriverBusyWarning(false), 2500);
+      return;
+    }
+    setSelectedDriverId(dp.id === selectedDriverId ? null : dp.id);
+    Haptics.selectionAsync();
+  };
+
   const handleConfirmOrder = async () => {
     if (!selectedLocation) return;
     setLoading(true);
@@ -97,6 +112,7 @@ export default function CartScreen() {
       selectedLocation,
       selectedPayment,
       selectedLocation === "custom" ? customLocationText.trim() : undefined,
+      selectedDriverId ?? undefined,
     );
     setLoading(false);
     if (order) {
@@ -108,6 +124,16 @@ export default function CartScreen() {
   return (
     <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
       <LinearGradient colors={["#0A0F1E", "#111827"]} style={StyleSheet.absoluteFill} />
+
+      {/* Closed banner */}
+      {!isShopOpen && (
+        <View style={styles.closedBanner}>
+          <Ionicons name="time-outline" size={16} color="#fff" />
+          <Text style={styles.closedBannerText}>
+            Closed • Opens 9:00 AM – 3:30 PM on school days
+          </Text>
+        </View>
+      )}
 
       {/* Header */}
       <View style={styles.header}>
@@ -278,8 +304,73 @@ export default function CartScreen() {
           </>
         )}
 
-        {/* STEP 3: Order Confirmation */}
+        {/* STEP 3: Driver Selection */}
         {step === 3 && (
+          <>
+            <Text style={styles.stepHint}>Choose your delivery rider</Text>
+            <Text style={styles.driverSubhint}>Tap a rider to request them. Busy riders are on another delivery.</Text>
+
+            {driverBusyWarning && (
+              <View style={styles.busyWarningBanner}>
+                <Ionicons name="warning-outline" size={16} color={Colors.warning} />
+                <Text style={styles.busyWarningText}>This rider is busy — please choose another available rider or select Any.</Text>
+              </View>
+            )}
+
+            <Pressable
+              style={[styles.driverCard, selectedDriverId === null && styles.driverCardSelected]}
+              onPress={() => { setSelectedDriverId(null); Haptics.selectionAsync(); }}
+            >
+              <View style={styles.driverAvatarWrap}>
+                <Text style={styles.driverAvatarText}>🚴</Text>
+              </View>
+              <View style={styles.driverInfo}>
+                <Text style={[styles.driverName, selectedDriverId === null && { color: Colors.primary }]}>Any available rider</Text>
+                <Text style={styles.driverSub}>First available rider takes the order</Text>
+              </View>
+              {selectedDriverId === null && <Feather name="check-circle" size={18} color={Colors.primary} />}
+            </Pressable>
+
+            {deliveryPersons.map(dp => (
+              <Pressable
+                key={dp.id}
+                style={[
+                  styles.driverCard,
+                  selectedDriverId === dp.id && styles.driverCardSelected,
+                  !dp.isAvailable && styles.driverCardBusy,
+                ]}
+                onPress={() => handleSelectDriver(dp)}
+              >
+                <View style={[styles.driverAvatarWrap, !dp.isAvailable && { opacity: 0.5 }]}>
+                  <Text style={styles.driverAvatarText}>
+                    {dp.id === "u1" ? "👩" : dp.id === "u2" ? "👩" : dp.id === "u3" ? "👨" : "🧑"}
+                  </Text>
+                </View>
+                <View style={styles.driverInfo}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={[styles.driverName, selectedDriverId === dp.id && { color: Colors.primary }, !dp.isAvailable && { color: Colors.textMuted }]}>
+                      {dp.name}
+                    </Text>
+                    {!dp.isAvailable && (
+                      <View style={styles.busyBadge}>
+                        <Text style={styles.busyBadgeText}>Busy</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Ionicons name="star" size={12} color={Colors.warning} />
+                    <Text style={styles.driverSub}>{dp.rating.toFixed(1)} • {dp.ordersCompleted} deliveries</Text>
+                  </View>
+                </View>
+                {selectedDriverId === dp.id && <Feather name="check-circle" size={18} color={Colors.primary} />}
+                {!dp.isAvailable && <Ionicons name="bicycle-outline" size={18} color={Colors.warning} />}
+              </Pressable>
+            ))}
+          </>
+        )}
+
+        {/* STEP 4: Order Confirmation */}
+        {step === 4 && (
           <>
             <Text style={styles.stepHint}>Review your order</Text>
             <View style={styles.confirmSection}>
@@ -300,6 +391,14 @@ export default function CartScreen() {
                   <Text style={styles.confirmItemName}>{displayLocationLabel}</Text>
                 </View>
                 <Text style={styles.confirmItemPrice}>J${deliveryFee.toLocaleString()}</Text>
+              </View>
+              <View style={styles.confirmItem}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="bicycle-outline" size={14} color={Colors.textSecondary} />
+                  <Text style={styles.confirmItemName}>
+                    {selectedDriver ? selectedDriver.name : "Any available rider"}
+                  </Text>
+                </View>
               </View>
               <View style={styles.confirmItem}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -338,7 +437,12 @@ export default function CartScreen() {
       {/* Bottom Action */}
       {cart.length > 0 && (
         <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 84 + 12 : insets.bottom + 12 }]}>
-          {step < 3 ? (
+          {!isShopOpen ? (
+            <View style={styles.closedActionBtn}>
+              <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} />
+              <Text style={styles.closedActionText}>Ordering closed • 9 AM – 3:30 PM</Text>
+            </View>
+          ) : step < 4 ? (
             <Pressable
               style={({ pressed }) => [styles.actionBtn, !canProceed() && styles.actionBtnDisabled, pressed && { opacity: 0.85 }]}
               onPress={handleNext}
@@ -470,4 +574,43 @@ const styles = StyleSheet.create({
   actionBtnDisabled: { backgroundColor: Colors.backgroundElevated, ...makeShadow("#000", 0, 0, 0, 0) },
   confirmBtn: { backgroundColor: Colors.success },
   actionBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  closedBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "#7C2D12", paddingHorizontal: 16, paddingVertical: 10,
+  },
+  closedBannerText: { fontSize: 13, fontFamily: "Inter_500Medium", color: "#fff", flex: 1 },
+  closedActionBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: Colors.backgroundElevated, borderRadius: 14, height: 54,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  closedActionText: { fontSize: 15, fontFamily: "Inter_500Medium", color: Colors.textMuted },
+  driverSubhint: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.textSecondary, marginTop: -4, marginBottom: 4 },
+  busyWarningBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "rgba(234,179,8,0.12)", borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: "rgba(234,179,8,0.3)",
+  },
+  busyWarningText: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.warning, flex: 1 },
+  driverCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: Colors.backgroundCard, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  driverCardSelected: { borderColor: Colors.primary, backgroundColor: "rgba(26,115,232,0.08)" },
+  driverCardBusy: { opacity: 0.75 },
+  driverAvatarWrap: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: Colors.backgroundElevated,
+    alignItems: "center", justifyContent: "center",
+  },
+  driverAvatarText: { fontSize: 22 },
+  driverInfo: { flex: 1 },
+  driverName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.text },
+  driverSub: { fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.textSecondary, marginTop: 2 },
+  busyBadge: {
+    backgroundColor: "rgba(234,179,8,0.15)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+    borderWidth: 1, borderColor: "rgba(234,179,8,0.35)",
+  },
+  busyBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: Colors.warning },
 });

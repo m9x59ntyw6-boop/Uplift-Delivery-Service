@@ -3,6 +3,16 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { AppState, AppStateStatus } from "react-native";
 import { useAuth } from "./AuthContext";
 
+export const OPENING_HOURS = { openHour: 9, openMin: 0, closeHour: 15, closeMin: 30 };
+
+export function isShopCurrentlyOpen(): boolean {
+  const now = new Date();
+  const total = now.getHours() * 60 + now.getMinutes();
+  const open  = OPENING_HOURS.openHour  * 60 + OPENING_HOURS.openMin;
+  const close = OPENING_HOURS.closeHour * 60 + OPENING_HOURS.closeMin;
+  return total >= open && total < close;
+}
+
 export type FoodSize = "small" | "medium" | "large";
 
 export interface MenuItem {
@@ -67,6 +77,7 @@ export interface Order {
   driverLat?: number;
   driverLng?: number;
   declinedBy: string[];
+  preferredDriverId?: string | null;
 }
 
 export interface DeliveryPerson {
@@ -139,10 +150,11 @@ interface OrderContextValue {
   cart: CartItem[];
   orders: Order[];
   deliveryPersons: DeliveryPerson[];
+  isShopOpen: boolean;
   addToCart: (item: MenuItem, size: FoodSize) => void;
   removeFromCart: (menuItemId: string, size: FoodSize) => void;
   clearCart: () => void;
-  placeOrder: (locationId: string, paymentMethod: PaymentMethod, customLabel?: string) => Promise<Order | null>;
+  placeOrder: (locationId: string, paymentMethod: PaymentMethod, customLabel?: string, preferredDriverId?: string) => Promise<Order | null>;
   acceptOrder: (orderId: string, deliveryPersonId: string, deliveryPersonName: string) => Promise<void>;
   declineOrder: (orderId: string, deliveryPersonId: string) => Promise<void>;
   advanceOrderStatus: (orderId: string) => Promise<void>;
@@ -192,6 +204,12 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [deliveryPersons, setDeliveryPersons] = useState<DeliveryPerson[]>(DEFAULT_DELIVERY_PERSONS);
+  const [isShopOpen, setIsShopOpen] = useState(isShopCurrentlyOpen());
+
+  useEffect(() => {
+    const id = setInterval(() => setIsShopOpen(isShopCurrentlyOpen()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => { loadData(); }, []);
 
@@ -275,7 +293,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   const getDeliveryFee = (_locationId: string): number => 50;
 
-  const placeOrder = async (locationId: string, paymentMethod: PaymentMethod, customLabel?: string): Promise<Order | null> => {
+  const placeOrder = async (locationId: string, paymentMethod: PaymentMethod, customLabel?: string, preferredDriverId?: string): Promise<Order | null> => {
     try {
     if (!user || cart.length === 0) return null;
     const isCustom = locationId === "custom";
@@ -307,6 +325,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       discountApplied: discount,
       streakDiscount: discountRate > 0,
       declinedBy: [],
+      preferredDriverId: preferredDriverId ?? null,
     };
     await saveOrders([order, ...orders]);
     clearCart();
@@ -335,6 +354,10 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       };
     });
     await saveOrders(updated);
+    const updatedDPs = deliveryPersons.map(dp =>
+      dp.id === deliveryPersonId ? { ...dp, isAvailable: false } : dp
+    );
+    await saveDeliveryPersons(updatedDPs);
   };
 
   const declineOrder = async (orderId: string, deliveryPersonId: string) => {
@@ -361,6 +384,12 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
       };
     });
     await saveOrders(updated);
+    if (nextStatus === "delivered" && order.deliveryPersonId) {
+      const updatedDPs = deliveryPersons.map(dp =>
+        dp.id === order.deliveryPersonId ? { ...dp, isAvailable: true } : dp
+      );
+      await saveDeliveryPersons(updatedDPs);
+    }
   };
 
   const updateMenuItems = async (items: MenuItem[]) => {
@@ -385,12 +414,12 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const value = useMemo(() => ({
-    menuItems, cart, orders, deliveryPersons,
+    menuItems, cart, orders, deliveryPersons, isShopOpen,
     addToCart, removeFromCart, clearCart,
     placeOrder, acceptOrder, declineOrder, advanceOrderStatus,
     updateMenuItems, rateDelivery, getStreakDiscount, getDeliveryFee,
     cartTotal, cartCount,
-  }), [menuItems, cart, orders, deliveryPersons, user]);
+  }), [menuItems, cart, orders, deliveryPersons, user, isShopOpen]);
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 }

@@ -15,7 +15,7 @@ import {
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
-import { FoodSize, MenuItem, useOrders } from "@/contexts/OrderContext";
+import { FoodSize, MenuItem, OPENING_HOURS, useOrders } from "@/contexts/OrderContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { makeShadow } from "@/utils/shadow";
 
@@ -88,7 +88,7 @@ function MenuCard({ item, index }: { item: MenuItem; index: number }) {
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
-  const { menuItems, cartCount, cartTotal, getStreakDiscount } = useOrders();
+  const { menuItems, cartCount, cartTotal, getStreakDiscount, isShopOpen } = useOrders();
   const { user } = useAuth();
   const [category, setCategory] = useState<Category>("all");
 
@@ -112,6 +112,15 @@ export default function MenuScreen() {
           </View>
         )}
       </View>
+
+      {!isShopOpen && (
+        <Animated.View entering={FadeInDown.delay(30)} style={styles.closedBanner}>
+          <Ionicons name="time-outline" size={16} color="#fff" />
+          <Text style={styles.closedBannerText}>
+            We're closed right now. Open {OPENING_HOURS.openHour}:00 AM – {OPENING_HOURS.closeHour}:{OPENING_HOURS.closeMin === 0 ? "00" : OPENING_HOURS.closeMin} PM
+          </Text>
+        </Animated.View>
+      )}
 
       {discount > 0 && (
         <Animated.View entering={FadeInDown.delay(50)} style={styles.discountBanner}>
@@ -192,6 +201,16 @@ const styles = StyleSheet.create({
     borderColor: "rgba(249,115,22,0.3)",
   },
   streakText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.streakOrange },
+  closedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#7C2D12",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 4,
+  },
+  closedBannerText: { fontSize: 13, fontFamily: "Inter_500Medium", color: "#fff", flex: 1 },
   discountBanner: {
     flexDirection: "row",
     alignItems: "center",
