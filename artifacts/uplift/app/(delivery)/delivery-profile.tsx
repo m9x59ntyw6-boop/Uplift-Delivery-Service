@@ -1,9 +1,11 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  AppState,
   Modal,
   Platform,
   Pressable,
@@ -16,8 +18,26 @@ import {
 import QRCode from "react-native-qrcode-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
-import { useAuth } from "@/contexts/AuthContext";
+import { User, useAuth } from "@/contexts/AuthContext";
 import { useOrders } from "@/contexts/OrderContext";
+
+const USERS_KEY = "@uplift_users_v2";
+const TWO_HOURS = 2 * 60 * 60 * 1000;
+
+function isStreakActive(u: User): boolean {
+  if (u.streakDays < 5) return false;
+  if (!u.streakAchievedAt) return false;
+  return Date.now() - new Date(u.streakAchievedAt).getTime() < TWO_HOURS;
+}
+
+function getTimeLeft(achievedAt: string | null): string {
+  if (!achievedAt) return "";
+  const elapsed = Date.now() - new Date(achievedAt).getTime();
+  const remaining = Math.max(0, TWO_HOURS - elapsed);
+  const mins = Math.ceil(remaining / 60000);
+  if (mins >= 60) return `${Math.ceil(mins / 60)}h left`;
+  return `${mins}m left`;
+}
 
 const DRIVER_EARNINGS_RATE = 0.15;
 
@@ -28,6 +48,23 @@ export default function DeliveryProfileScreen() {
   const { user, logout } = useAuth();
   const { orders, deliveryPersons } = useOrders();
   const [showQR, setShowQR] = useState(false);
+  const [streakUsers, setStreakUsers] = useState<User[]>([]);
+
+  const loadStreakUsers = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(USERS_KEY);
+      const all: User[] = stored ? JSON.parse(stored) : [];
+      setStreakUsers(all.filter(u => u.streakDays >= 5 && u.role === "student_staff"));
+    } catch {
+      setStreakUsers([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStreakUsers();
+    const sub = AppState.addEventListener("change", s => { if (s === "active") loadStreakUsers(); });
+    return () => sub.remove();
+  }, [loadStreakUsers]);
 
   const dp = deliveryPersons.find(d => d.id === user?.id);
   const myDeliveries = orders.filter(o => o.deliveryPersonId === user?.id && o.status === "delivered");
@@ -110,6 +147,66 @@ export default function DeliveryProfileScreen() {
             <Text style={styles.statLabel}>{stat.label}</Text>
           </View>
         ))}
+      </View>
+
+      {/* ── Free Delivery Members ── */}
+      <View style={styles.section}>
+        <View style={styles.streakSectionHeader}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons name="flame" size={15} color={Colors.streakOrange} />
+            <Text style={styles.sectionTitle}>Free Delivery Members</Text>
+          </View>
+          <Pressable onPress={loadStreakUsers} style={styles.refreshBtn}>
+            <Feather name="refresh-cw" size={13} color={Colors.textMuted} />
+          </Pressable>
+        </View>
+
+        {streakUsers.length === 0 ? (
+          <View style={styles.streakEmpty}>
+            <Ionicons name="flame-outline" size={28} color={Colors.textMuted} />
+            <Text style={styles.streakEmptyTitle}>No members yet</Text>
+            <Text style={styles.streakEmptyText}>
+              Customers who order 5 days in a row will appear here with free delivery active.
+            </Text>
+          </View>
+        ) : (
+          streakUsers.map(u => {
+            const active = isStreakActive(u);
+            const timeLeft = active ? getTimeLeft(u.streakAchievedAt) : "";
+            return (
+              <View key={u.id} style={[styles.streakMemberCard, active && styles.streakMemberCardActive]}>
+                <LinearGradient
+                  colors={active ? ["rgba(34,197,94,0.12)", "rgba(34,197,94,0.04)"] : ["rgba(249,115,22,0.1)", "rgba(249,115,22,0.03)"]}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={[styles.streakAvatar, { backgroundColor: active ? "rgba(34,197,94,0.2)" : "rgba(249,115,22,0.15)" }]}>
+                  <Text style={[styles.streakAvatarText, { color: active ? Colors.success : Colors.streakOrange }]}>
+                    {u.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.streakMemberInfo}>
+                  <Text style={styles.streakMemberName}>{u.name}</Text>
+                  <Text style={styles.streakMemberEmail} numberOfLines={1}>{u.email}</Text>
+                  <View style={styles.streakMemberBadgeRow}>
+                    <View style={[styles.streakDaysBadge, { backgroundColor: active ? "rgba(34,197,94,0.15)" : "rgba(249,115,22,0.12)" }]}>
+                      <Ionicons name="flame" size={11} color={active ? Colors.success : Colors.streakOrange} />
+                      <Text style={[styles.streakDaysBadgeText, { color: active ? Colors.success : Colors.streakOrange }]}>
+                        {u.streakDays} day streak
+                      </Text>
+                    </View>
+                    {active && (
+                      <View style={styles.freeDeliveryBadge}>
+                        <Ionicons name="bicycle" size={11} color={Colors.success} />
+                        <Text style={styles.freeDeliveryBadgeText}>Free delivery • {timeLeft}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <View style={[styles.streakStatusDot, { backgroundColor: active ? Colors.success : Colors.streakOrange }]} />
+              </View>
+            );
+          })
+        )}
       </View>
 
       {/* ── Share App section ── */}
@@ -436,4 +533,50 @@ const styles = StyleSheet.create({
   },
   modalShareText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
   modalDismiss: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textMuted },
+
+  streakSectionHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4,
+  },
+  refreshBtn: {
+    padding: 6, borderRadius: 8,
+    backgroundColor: Colors.backgroundElevated,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  streakEmpty: {
+    alignItems: "center", gap: 8, paddingVertical: 20,
+    backgroundColor: Colors.backgroundCard, borderRadius: 14,
+    borderWidth: 1, borderColor: Colors.border, padding: 20,
+  },
+  streakEmptyTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.textSecondary },
+  streakEmptyText: {
+    fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.textMuted,
+    textAlign: "center", lineHeight: 18,
+  },
+  streakMemberCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    borderRadius: 14, padding: 12, overflow: "hidden",
+    borderWidth: 1, borderColor: "rgba(249,115,22,0.2)",
+  },
+  streakMemberCardActive: { borderColor: "rgba(34,197,94,0.3)" },
+  streakAvatar: {
+    width: 42, height: 42, borderRadius: 21,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  streakAvatarText: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  streakMemberInfo: { flex: 1, gap: 3 },
+  streakMemberName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.text },
+  streakMemberEmail: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.textMuted },
+  streakMemberBadgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
+  streakDaysBadge: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    borderRadius: 10, paddingHorizontal: 7, paddingVertical: 3,
+  },
+  streakDaysBadgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  freeDeliveryBadge: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    borderRadius: 10, paddingHorizontal: 7, paddingVertical: 3,
+    backgroundColor: "rgba(34,197,94,0.15)",
+  },
+  freeDeliveryBadgeText: { fontSize: 11, fontFamily: "Inter_500Medium", color: Colors.success },
+  streakStatusDot: { width: 9, height: 9, borderRadius: 5, flexShrink: 0 },
 });
