@@ -5,6 +5,8 @@ import React, { useState } from "react";
 import {
   Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -130,10 +132,23 @@ function EditableMenuItem({ item, onSave }: { item: MenuItem; onSave: (updated: 
   );
 }
 
+const CATEGORY_OPTIONS: { id: MenuItem["category"]; label: string; emoji: string }[] = [
+  { id: "food", label: "Food", emoji: "🍽" },
+  { id: "snack", label: "Snack", emoji: "🍿" },
+  { id: "drink", label: "Drink", emoji: "🥤" },
+];
+
+const BLANK_ITEM = {
+  name: "", desc: "", emoji: "", category: "food" as MenuItem["category"],
+  small: "750", medium: "850", large: "1000",
+};
+
 export default function MenuEditorScreen() {
   const insets = useSafeAreaInsets();
   const { menuItems, updateMenuItems } = useOrders();
   const [items, setItems] = useState<MenuItem[]>(menuItems);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState(BLANK_ITEM);
 
   const handleSave = async (updated: MenuItem) => {
     const newItems = items.map(i => i.id === updated.id ? updated : i);
@@ -141,15 +156,44 @@ export default function MenuEditorScreen() {
     await updateMenuItems(newItems);
   };
 
+  const resetForm = () => setForm(BLANK_ITEM);
+
+  const handleAddItem = async () => {
+    const name = form.name.trim();
+    if (!name) { Alert.alert("Name required", "Please enter a name for the item."); return; }
+    const emoji = form.emoji.trim() || "🍽";
+    const small = parseInt(form.small) || 750;
+    const medium = parseInt(form.medium) || 850;
+    const large = parseInt(form.large) || 1000;
+    const newItem: MenuItem = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 6),
+      name,
+      description: form.desc.trim() || name,
+      emoji,
+      category: form.category,
+      prices: { small, medium, large },
+      available: true,
+    };
+    const newItems = [...items, newItem];
+    setItems(newItems);
+    await updateMenuItems(newItems);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    resetForm();
+    setShowAdd(false);
+  };
+
   return (
     <View style={[styles.container, { paddingTop: Platform.OS === "web" ? 67 : insets.top }]}>
       <LinearGradient colors={["#0A0F1E", "#111827"]} style={StyleSheet.absoluteFill} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Menu Editor</Text>
-        <View style={styles.editBadge}>
-          <Feather name="edit-2" size={12} color={Colors.accent} />
-          <Text style={styles.editBadgeText}>Delivery only</Text>
-        </View>
+        <Pressable
+          style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.85 }]}
+          onPress={() => { setShowAdd(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+        >
+          <Feather name="plus" size={16} color="#fff" />
+          <Text style={styles.addBtnText}>Add Item</Text>
+        </Pressable>
       </View>
 
       <View style={styles.notice}>
@@ -169,6 +213,103 @@ export default function MenuEditorScreen() {
         showsVerticalScrollIndicator={false}
         scrollEnabled
       />
+
+      {/* ── Add New Item Modal ── */}
+      <Modal
+        visible={showAdd}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { setShowAdd(false); resetForm(); }}
+      >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+          <Pressable style={styles.modalOverlay} onPress={() => { setShowAdd(false); resetForm(); }}>
+            <Pressable style={[styles.modalCard, { paddingBottom: insets.bottom + 16 }]} onPress={() => {}}>
+              <LinearGradient colors={["#111827", "#1A2332"]} style={StyleSheet.absoluteFill} />
+              <View style={styles.modalHandle} />
+
+              <Text style={styles.modalTitle}>Add New Item</Text>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {/* Name */}
+                <Text style={styles.fieldLabel}>Item Name *</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={form.name}
+                  onChangeText={v => setForm(f => ({ ...f, name: v }))}
+                  placeholder="e.g. Brown Stew Chicken"
+                  placeholderTextColor={Colors.textMuted}
+                />
+
+                {/* Emoji */}
+                <Text style={styles.fieldLabel}>Emoji Icon</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={form.emoji}
+                  onChangeText={v => setForm(f => ({ ...f, emoji: v }))}
+                  placeholder="🍗"
+                  placeholderTextColor={Colors.textMuted}
+                />
+
+                {/* Description */}
+                <Text style={styles.fieldLabel}>Description</Text>
+                <TextInput
+                  style={[styles.fieldInput, styles.fieldInputMulti]}
+                  value={form.desc}
+                  onChangeText={v => setForm(f => ({ ...f, desc: v }))}
+                  placeholder="Brief description of the item..."
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  numberOfLines={2}
+                />
+
+                {/* Category */}
+                <Text style={styles.fieldLabel}>Category</Text>
+                <View style={styles.categoryRow}>
+                  {CATEGORY_OPTIONS.map(cat => (
+                    <Pressable
+                      key={cat.id}
+                      style={[styles.categoryBtn, form.category === cat.id && styles.categoryBtnActive]}
+                      onPress={() => { setForm(f => ({ ...f, category: cat.id })); Haptics.selectionAsync(); }}
+                    >
+                      <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+                      <Text style={[styles.categoryLabel, form.category === cat.id && { color: Colors.accent }]}>{cat.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {/* Prices */}
+                <Text style={styles.fieldLabel}>Prices (JMD)</Text>
+                <View style={styles.priceRow}>
+                  {[
+                    { label: "Small", key: "small" as const },
+                    { label: "Medium", key: "medium" as const },
+                    { label: "Large", key: "large" as const },
+                  ].map(p => (
+                    <View key={p.label} style={styles.priceField}>
+                      <Text style={styles.priceSizeLabel}>{p.label}</Text>
+                      <TextInput
+                        style={styles.priceInput}
+                        value={form[p.key]}
+                        onChangeText={v => setForm(f => ({ ...f, [p.key]: v.replace(/[^0-9]/g, "") }))}
+                        keyboardType="numeric"
+                        placeholderTextColor={Colors.textMuted}
+                      />
+                    </View>
+                  ))}
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [styles.saveItemBtn, pressed && { opacity: 0.85 }]}
+                  onPress={handleAddItem}
+                >
+                  <Feather name="plus-circle" size={16} color="#fff" />
+                  <Text style={styles.saveItemBtnText}>Add to Menu</Text>
+                </Pressable>
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -273,4 +414,80 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   saveBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
+
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.accent,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  addBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    gap: 14,
+    maxHeight: "90%",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center",
+    marginBottom: 4,
+  },
+  modalTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: Colors.text },
+
+  fieldLabel: {
+    fontSize: 12, fontFamily: "Inter_500Medium",
+    color: Colors.textSecondary, marginBottom: 4, marginTop: 8,
+  },
+  fieldInput: {
+    backgroundColor: Colors.backgroundElevated,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    color: Colors.text,
+  },
+  fieldInputMulti: { height: 72, textAlignVertical: "top" },
+
+  categoryRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  categoryBtn: {
+    flex: 1, alignItems: "center", gap: 4,
+    borderRadius: 12, paddingVertical: 10,
+    backgroundColor: Colors.backgroundElevated,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  categoryBtnActive: { borderColor: Colors.accent, backgroundColor: "rgba(255,107,53,0.1)" },
+  categoryEmoji: { fontSize: 20 },
+  categoryLabel: { fontSize: 11, fontFamily: "Inter_500Medium", color: Colors.textSecondary },
+
+  saveItemBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.accent,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  saveItemBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff" },
 });

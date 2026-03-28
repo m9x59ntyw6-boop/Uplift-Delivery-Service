@@ -287,12 +287,15 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   const getStreakDiscount = (): number => {
     if (!user) return 0;
-    if (user.streakDays >= 3) return 0.10;
-    if (user.streakDays >= 2) return 0.05;
+    if (user.streakDays >= 5) return 0.10;
+    if (user.streakDays >= 3) return 0.05;
     return 0;
   };
 
-  const getDeliveryFee = (_locationId: string): number => 50;
+  const getDeliveryFee = (_locationId: string): number => {
+    if (user && user.streakDays >= 5) return 0;
+    return 50;
+  };
 
   const placeOrder = async (locationId: string, paymentMethod: PaymentMethod, customLabel?: string, preferredDriverId?: string): Promise<Order | null> => {
     try {
@@ -302,7 +305,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const discountRate = getStreakDiscount();
     const discount = Math.floor(subtotal * discountRate);
-    const deliveryFee = 50;
+    const deliveryFee = getDeliveryFee(locationId);
     const total = subtotal - discount + deliveryFee;
 
     const order: Order = {

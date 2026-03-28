@@ -74,26 +74,44 @@ export default function ProfileScreen() {
               {streakDays === 0
                 ? "Order today to start your streak!"
                 : streakDays === 1
-                ? "Order tomorrow for 5% off!"
-                : streakDays >= 3
-                ? "10% discount active!"
-                : "Order again for 5% off!"}
+                ? "2 more days for 5% off!"
+                : streakDays === 2
+                ? "1 more day for 5% off!"
+                : streakDays < 5
+                ? `5% off active! ${5 - streakDays} more day${5 - streakDays !== 1 ? "s" : ""} for free delivery!`
+                : "Free delivery + 10% off active!"}
             </Text>
           </View>
           <View style={styles.streakProgress}>
-            {[1, 2, 3].map(day => (
-              <View key={day} style={[styles.streakDot, streakDays >= day && styles.streakDotActive]}>
+            {[1, 2, 3, 4, 5].map(day => (
+              <View key={day} style={[
+                styles.streakDot,
+                streakDays >= day && styles.streakDotActive,
+                day === 5 && styles.streakDotGoal,
+              ]}>
                 {streakDays >= day
-                  ? <Feather name="check" size={12} color="#fff" />
+                  ? <Feather name="check" size={10} color="#fff" />
+                  : day === 5
+                  ? <Ionicons name="bicycle" size={11} color={streakDays >= 5 ? "#fff" : Colors.streakGold} />
                   : <Text style={styles.streakDotNum}>{day}</Text>
                 }
               </View>
             ))}
           </View>
+          <View style={styles.freeDeliveryNote}>
+            <Ionicons name="bicycle" size={13} color={streakDays >= 5 ? Colors.success : Colors.streakGold} />
+            <Text style={[styles.freeDeliveryNoteText, streakDays >= 5 && { color: Colors.success }]}>
+              {streakDays >= 5 ? "Free delivery unlocked!" : "Order 5 days in a row → free delivery!"}
+            </Text>
+          </View>
           {discount > 0 && (
             <View style={styles.discountActive}>
               <Ionicons name="pricetag" size={14} color={Colors.streakGold} />
-              <Text style={styles.discountActiveText}>{Math.round(discount * 100)}% discount on your next order!</Text>
+              <Text style={styles.discountActiveText}>
+                {streakDays >= 5
+                  ? "Free delivery + 10% off your order!"
+                  : "5% off your next order!"}
+              </Text>
             </View>
           )}
         </LinearGradient>
@@ -189,11 +207,11 @@ const styles = StyleSheet.create({
   streakTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.streakOrange },
   streakDays: { fontSize: 32, fontFamily: "Inter_700Bold", color: Colors.text },
   streakSubtitle: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.textSecondary },
-  streakProgress: { flexDirection: "row", gap: 10 },
+  streakProgress: { flexDirection: "row", gap: 7 },
   streakDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: Colors.backgroundElevated,
     alignItems: "center",
     justifyContent: "center",
@@ -201,7 +219,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   streakDotActive: { backgroundColor: Colors.streakOrange, borderColor: Colors.streakOrange },
-  streakDotNum: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.textMuted },
+  streakDotGoal: { borderColor: Colors.streakGold, borderStyle: "dashed" },
+  streakDotNum: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: Colors.textMuted },
+  freeDeliveryNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(245,158,11,0.1)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.25)",
+  },
+  freeDeliveryNoteText: { fontSize: 12, fontFamily: "Inter_500Medium", color: Colors.streakGold },
   discountActive: {
     flexDirection: "row",
     alignItems: "center",

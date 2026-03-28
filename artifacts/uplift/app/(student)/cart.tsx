@@ -424,7 +424,16 @@ export default function CartScreen() {
                   <Text style={[styles.totalValue, { color: Colors.streakOrange }]}>-J${discountAmount.toLocaleString()}</Text>
                 </View>
               )}
-              <View style={styles.totalRow}><Text style={styles.totalLabel}>Delivery Fee</Text><Text style={styles.totalValue}>J${deliveryFee.toLocaleString()}</Text></View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Delivery Fee</Text>
+                {deliveryFee === 0
+                  ? <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="bicycle" size={13} color={Colors.success} />
+                      <Text style={[styles.totalValue, { color: Colors.success }]}>FREE</Text>
+                    </View>
+                  : <Text style={styles.totalValue}>J${deliveryFee.toLocaleString()}</Text>
+                }
+              </View>
               <View style={[styles.totalRow, styles.grandTotalRow]}>
                 <Text style={styles.grandTotalLabel}>Total</Text>
                 <Text style={styles.grandTotalValue}>J${total.toLocaleString()}</Text>
