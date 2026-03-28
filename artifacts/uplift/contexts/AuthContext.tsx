@@ -10,6 +10,7 @@ export interface User {
   role: UserRole;
   streakDays: number;
   lastOrderDate: string | null;
+  streakAchievedAt: string | null;
   agreedToTerms: boolean;
   avatar?: string;
 }
@@ -54,7 +55,7 @@ const LAST_EMAIL_KEY   = "@uplift_last_email_v2";    // last successful login em
 const DEMO_USERS: User[] = DELIVERY_STAFF.map(s => ({
   id: s.id, name: s.name, email: s.email,
   role: "delivery" as UserRole,
-  streakDays: 0, lastOrderDate: null, agreedToTerms: true,
+  streakDays: 0, lastOrderDate: null, streakAchievedAt: null, agreedToTerms: true,
 }));
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => { loadUser(); }, []);
+
+  // ── 2-hour streak reset when 5-day streak is achieved ─────────────────────
+  useEffect(() => {
+    if (!user || user.streakDays < 5 || !user.streakAchievedAt) return;
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    const achievedAt = new Date(user.streakAchievedAt).getTime();
+    const elapsed = Date.now() - achievedAt;
+    if (elapsed >= TWO_HOURS) {
+      const reset = { ...user, streakDays: 0, streakAchievedAt: null };
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(reset)).catch(() => {});
+      setUser(reset);
+      return;
+    }
+    const remaining = TWO_HOURS - elapsed;
+    const timer = setTimeout(() => {
+      setUser(prev => {
+        if (!prev) return prev;
+        const reset = { ...prev, streakDays: 0, streakAchievedAt: null };
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(reset)).catch(() => {});
+        return reset;
+      });
+    }, remaining);
+    return () => clearTimeout(timer);
+  }, [user?.streakDays, user?.streakAchievedAt]);
 
   const loadUser = async () => {
     try {
@@ -172,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const found = users.find(u => u.id === staffId) ?? {
         id: staff.id, name: staff.name, email: staff.email,
         role: "delivery" as UserRole,
-        streakDays: 0, lastOrderDate: null, agreedToTerms: true,
+        streakDays: 0, lastOrderDate: null, streakAchievedAt: null, agreedToTerms: true,
       };
       await saveUser(found);
       return "success";
@@ -190,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const newUser: User = {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         name, email, role,
-        streakDays: 0, lastOrderDate: null, agreedToTerms: false,
+        streakDays: 0, lastOrderDate: null, streakAchievedAt: null, agreedToTerms: false,
       };
       await saveUsers([...users, newUser]);
       // Save the password so they can log back in later
@@ -231,7 +256,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user.lastOrderDate === today) return;
       const yesterday = new Date(Date.now() - 86400000).toDateString();
       const newStreak = user.lastOrderDate === yesterday ? user.streakDays + 1 : 1;
-      await saveUser({ ...user, streakDays: newStreak, lastOrderDate: today });
+      const alreadyAt5 = (user.streakDays ?? 0) >= 5;
+      const streakAchievedAt =
+        newStreak >= 5 && !alreadyAt5
+          ? new Date().toISOString()
+          : (user.streakAchievedAt ?? null);
+      await saveUser({ ...user, streakDays: newStreak, lastOrderDate: today, streakAchievedAt });
     } catch (e) {
       console.warn("[Auth] Streak update error:", e);
     }

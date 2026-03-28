@@ -20,13 +20,13 @@ import { useOrders } from "@/contexts/OrderContext";
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const { orders, getStreakDiscount } = useOrders();
+  const { orders } = useOrders();
 
   const myOrders = orders.filter(o => o.userId === user?.id);
   const totalSpent = myOrders.reduce((s, o) => s + o.total, 0);
   const completedOrders = myOrders.filter(o => o.status === "delivered").length;
   const streakDays = user?.streakDays ?? 0;
-  const discount = getStreakDiscount();
+  const hasStreak = streakDays >= 5;
 
   const handleLogout = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -73,13 +73,9 @@ export default function ProfileScreen() {
             <Text style={styles.streakSubtitle}>
               {streakDays === 0
                 ? "Order today to start your streak!"
-                : streakDays === 1
-                ? "2 more days for 5% off!"
-                : streakDays === 2
-                ? "1 more day for 5% off!"
                 : streakDays < 5
-                ? `5% off active! ${5 - streakDays} more day${5 - streakDays !== 1 ? "s" : ""} for free delivery!`
-                : "Free delivery + 10% off active!"}
+                ? `${5 - streakDays} more day${5 - streakDays !== 1 ? "s" : ""} for free delivery!`
+                : "Free delivery active for 2 hours!"}
             </Text>
           </View>
           <View style={styles.streakProgress}>
@@ -98,22 +94,14 @@ export default function ProfileScreen() {
               </View>
             ))}
           </View>
-          <View style={styles.freeDeliveryNote}>
-            <Ionicons name="bicycle" size={13} color={streakDays >= 5 ? Colors.success : Colors.streakGold} />
-            <Text style={[styles.freeDeliveryNoteText, streakDays >= 5 && { color: Colors.success }]}>
-              {streakDays >= 5 ? "Free delivery unlocked!" : "Order 5 days in a row → free delivery!"}
+          <View style={[styles.freeDeliveryNote, hasStreak && { backgroundColor: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.3)" }]}>
+            <Ionicons name="bicycle" size={13} color={hasStreak ? Colors.success : Colors.streakGold} />
+            <Text style={[styles.freeDeliveryNoteText, hasStreak && { color: Colors.success }]}>
+              {hasStreak
+                ? "Free delivery unlocked! Resets in 2 hours."
+                : "Order 5 days in a row → free delivery for 2 hours!"}
             </Text>
           </View>
-          {discount > 0 && (
-            <View style={styles.discountActive}>
-              <Ionicons name="pricetag" size={14} color={Colors.streakGold} />
-              <Text style={styles.discountActiveText}>
-                {streakDays >= 5
-                  ? "Free delivery + 10% off your order!"
-                  : "5% off your next order!"}
-              </Text>
-            </View>
-          )}
         </LinearGradient>
       </View>
 

@@ -49,7 +49,7 @@ function CartItemRow({ item }: { item: CartItem }) {
 
 export default function CartScreen() {
   const insets = useSafeAreaInsets();
-  const { cart, cartTotal, cartCount, getStreakDiscount, getDeliveryFee, placeOrder, clearCart, deliveryPersons, isShopOpen } = useOrders();
+  const { cart, cartTotal, cartCount, getDeliveryFee, placeOrder, clearCart, deliveryPersons, isShopOpen } = useOrders();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
@@ -60,10 +60,9 @@ export default function CartScreen() {
   const [loading, setLoading] = useState(false);
   const customInputRef = useRef<TextInput>(null);
 
-  const discount = getStreakDiscount();
-  const discountAmount = Math.floor(cartTotal * discount);
   const deliveryFee = selectedLocation ? getDeliveryFee(selectedLocation) : 0;
-  const total = cartTotal - discountAmount + deliveryFee;
+  const freeDelivery = getDeliveryFee("loc1") === 0;
+  const total = cartTotal + deliveryFee;
   const locationData = JAMAICA_LOCATIONS.find(l => l.id === selectedLocation);
   const displayLocationLabel = selectedLocation === "custom"
     ? (customLocationText.trim() || "Custom Address")
@@ -193,15 +192,6 @@ export default function CartScreen() {
                   <Text style={styles.summaryLabel}>{cartCount} item{cartCount !== 1 ? "s" : ""}</Text>
                   <Text style={styles.summaryValue}>J${cartTotal.toLocaleString()}</Text>
                 </View>
-                {discountAmount > 0 && (
-                  <View style={styles.summaryRow}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                      <Ionicons name="flame" size={14} color={Colors.streakOrange} />
-                      <Text style={[styles.summaryLabel, { color: Colors.streakOrange }]}>Streak Discount</Text>
-                    </View>
-                    <Text style={[styles.summaryValue, { color: Colors.streakOrange }]}>-J${discountAmount.toLocaleString()}</Text>
-                  </View>
-                )}
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Delivery Fee</Text>
                   <Text style={[styles.summaryLabel, { color: Colors.textMuted }]}>Select location →</Text>
@@ -229,7 +219,13 @@ export default function CartScreen() {
                   </View>
                 </View>
                 <View style={styles.locationRight}>
-                  <Text style={[styles.locationFee, selectedLocation === loc.id && { color: Colors.primary }]}>J${loc.deliveryFee}</Text>
+                  {freeDelivery
+                    ? <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                        <Ionicons name="bicycle" size={12} color={Colors.success} />
+                        <Text style={[styles.locationFee, { color: Colors.success }]}>FREE</Text>
+                      </View>
+                    : <Text style={[styles.locationFee, selectedLocation === loc.id && { color: Colors.primary }]}>J${loc.deliveryFee}</Text>
+                  }
                   {selectedLocation === loc.id && <Feather name="check-circle" size={16} color={Colors.primary} />}
                 </View>
               </Pressable>
@@ -418,12 +414,6 @@ export default function CartScreen() {
 
             <View style={styles.totalBreakdown}>
               <View style={styles.totalRow}><Text style={styles.totalLabel}>Subtotal</Text><Text style={styles.totalValue}>J${cartTotal.toLocaleString()}</Text></View>
-              {discountAmount > 0 && (
-                <View style={styles.totalRow}>
-                  <Text style={[styles.totalLabel, { color: Colors.streakOrange }]}>Streak Discount</Text>
-                  <Text style={[styles.totalValue, { color: Colors.streakOrange }]}>-J${discountAmount.toLocaleString()}</Text>
-                </View>
-              )}
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Delivery Fee</Text>
                 {deliveryFee === 0

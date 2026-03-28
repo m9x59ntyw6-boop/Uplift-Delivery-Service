@@ -285,12 +285,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const getStreakDiscount = (): number => {
-    if (!user) return 0;
-    if (user.streakDays >= 5) return 0.10;
-    if (user.streakDays >= 3) return 0.05;
-    return 0;
-  };
+  const getStreakDiscount = (): number => 0;
 
   const getDeliveryFee = (_locationId: string): number => {
     if (user && user.streakDays >= 5) return 0;
