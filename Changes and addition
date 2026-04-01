@@ -1,0 +1,286 @@
+// =============================
+// 🚀 LUNCHLIFT FULL SYSTEM FILE
+// =============================
+
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+app.use(express.json());
+
+// =============================
+// 📦 DATABASE (TEMP - REPLACE WITH MONGODB)
+// =============================
+
+let users = [];
+let deliveries = [];
+let messages = [];
+
+// =============================
+// ⚙️ CONFIG
+// =============================
+
+const MAX_PREORDERS = 10;
+const MAX_DRIVER_PREORDERS = 5;
+const MAX_CUSTOMER_FOOD = 10;
+
+// =============================
+// 🍗 MENU WITH CUSTOMIZATION
+// =============================
+
+const menu = {
+friedChicken: {
+parts: ["Breast", "Thigh", "Wing", "Drumstick"],
+gravy: ["Gravy", "No Gravy"]
+},
+drinks: {
+flavors: ["Orange", "Grape", "Pineapple", "Fruit Punch"]
+},
+sides: ["Soup", "Fries", "Salad"]
+};
+
+// =============================
+// 💰 SERVICE FEE CALCULATION
+// =============================
+
+function calculateServiceFee(foodCount) {
+if (foodCount <= 1) return 50;
+return foodCount * 50;
+}
+
+// =============================
+// ⏰ PREORDER TIME CHECK
+// =============================
+
+function isPreorderTime() {
+const now = new Date();
+const hours = now.getHours();
+const minutes = now.getMinutes();
+
+const totalMinutes = hours * 60 + minutes;
+
+const start = 9 * 60; // 9:00 AM
+const end = 11 * 60 + 30; // 11:30 AM
+
+return totalMinutes >= start && totalMinutes <= end;
+}
+
+// =============================
+// 📦 CREATE ORDER
+// =============================
+
+app.post("/create-order", (req, res) => {
+const {
+customerId,
+deliveryPersonId,
+foodItems,
+drinks,
+sides,
+scheduleTime,
+isPreorder
+} = req.body;
+
+if (foodItems.length > MAX_CUSTOMER_FOOD) {
+return res.status(400).json({ message: "Max 10 food items allowed" });
+}
+
+// PREORDER LOGIC
+if (isPreorder && !isPreorderTime()) {
+return res.status(400).json({
+message: "Pre-orders are closed. Orders now count as regular orders."
+});
+}
+
+// LIMIT GLOBAL PREORDERS
+const preorderCount = deliveries.filter(d => d.isPreorder).length;
+if (isPreorder && preorderCount >= MAX_PREORDERS) {
+return res.status(400).json({ message: "Pre-order limit reached" });
+}
+
+// LIMIT DRIVER PREORDERS
+const driverPreorders = deliveries.filter(
+d => d.assignedTo === deliveryPersonId && d.isPreorder
+).length;
+
+if (isPreorder && driverPreorders >= MAX_DRIVER_PREORDERS) {
+return res.status(400).json({
+message: "This delivery person has max pre-orders. Choose another."
+});
+}
+
+const foodCount = foodItems.length;
+const serviceFee = calculateServiceFee(foodCount);
+
+const order = {
+id: Date.now().toString(),
+customerId,
+assignedTo: deliveryPersonId,
+foodItems,
+drinks,
+sides,
+serviceFee,
+scheduleTime,
+isPreorder,
+status: "pending",
+createdAt: new Date()
+};
+
+deliveries.push(order);
+
+io.to(deliveryPersonId).emit("newOrder", order);
+
+res.json({ message: "Order created", order });
+});
+
+// =============================
+// 🚚 DRIVER VIEW (ONLY THEIR ORDERS)
+// =============================
+
+app.get("/my-orders/:driverId", (req, res) => {
+const { driverId } = req.params;
+
+const myOrders = deliveries.filter(
+order => order.assignedTo === driverId
+);
+
+res.json(myOrders);
+});
+
+// =============================
+// ✅ ACCEPT ORDER (MAX 5 ACTIVE)
+// =============================
+
+app.post("/accept-order", (req, res) => {
+const { orderId, driverId } = req.body;
+
+const order = deliveries.find(o => o.id === orderId);
+
+if (!order) return res.status(404).json({ message: "Order not found" });
+
+if (order.assignedTo !== driverId) {
+return res.status(403).json({ message: "Unauthorized" });
+}
+
+const activeOrders = deliveries.filter(
+o => o.assignedTo === driverId && o.status === "accepted"
+).length;
+
+if (activeOrders >= 5) {
+return res.status(400).json({
+message: "Max 5 active orders reached. Choose another driver."
+});
+}
+
+order.status = "accepted";
+
+res.json({ message: "Order accepted", order });
+});
+
+// =============================
+// 📦 COMPLETE OR CANCEL ORDER
+// =============================
+
+app.post("/complete-order", (req, res) => {
+const { orderId, driverId, status } = req.body;
+
+const order = deliveries.find(o => o.id === orderId);
+
+if (!order) return res.status(404).json({ message: "Not found" });
+
+if (order.assignedTo !== driverId) {
+return res.status(403).json({ message: "Unauthorized" });
+}
+
+order.status = status; // "completed" or "cancelled"
+
+res.json({ message: "Updated", order });
+});
+
+// =============================
+// 💬 REAL-TIME CHAT (WHATSAPP STYLE)
+// =============================
+
+io.on("connection", (socket) => {
+console.log("User connected:", socket.id);
+
+socket.on("join", (userId) => {
+socket.join(userId);
+});
+
+socket.on("sendMessage", ({ senderId, receiverId, text, orderId }) => {
+const message = {
+id: Date.now(),
+senderId,
+receiverId,
+text,
+orderId,
+time: new Date()
+};
+
+messages.push(message);
+
+io.to(receiverId).emit("receiveMessage", message);
+});
+
+socket.on("typing", ({ receiverId }) => {
+io.to(receiverId).emit("typing");
+});
+});
+
+// =============================
+// 📞 CONTACT INFO SYSTEM
+// =============================
+
+app.post("/update-contact", (req, res) => {
+const { userId, phone, email } = req.body;
+
+const user = users.find(u => u.id === userId);
+
+if (!user) return res.status(404).json({ message: "User not found" });
+
+user.phone = phone;
+user.email = email;
+
+res.json({ message: "Updated" });
+});
+
+// =============================
+// 📢 RUNNING BANNER MESSAGE
+// =============================
+
+const bannerMessage =
+"⚠️ The more food you order, $50 is added per meal for handling & delivery care.";
+
+// =============================
+// 📜 DISCLAIMERS
+// =============================
+
+const disclaimer = `
+Customers should only use the pre-order section if they are ready to receive food immediately.
+If not ready, your order may be delayed.
+`;
+
+// =============================
+// 🚀 START SERVER
+// =============================
+
+server.listen(3000, () => {
+console.log("LunchLift server running on port 3000");
+});
+
+
+npm install express socket.io
+node lunchlift-system.js
+
+
+http://YOUR-IP:3000
+
+const MONGO_URI = "your_mongodb_uri";
+const JWT_SECRET = "your_secret_key";
+
+npm install express mongoose socket.io jsonwebtoken bcryptjs
+node lunchlift-pro-system.js
